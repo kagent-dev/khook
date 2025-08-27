@@ -1,0 +1,125 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: hooks.kagent.dev
+spec:
+  group: kagent.dev
+  names:
+    kind: Hook
+    listKind: HookList
+    plural: hooks
+    singular: hook
+  scope: Namespaced
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: Hook is the Schema for the hooks API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HookSpec defines the desired state of Hook
+            properties:
+              eventConfigurations:
+                description: EventConfigurations defines the list of event configurations
+                  to monitor
+                items:
+                  description: EventConfiguration defines a single event type configuration
+                  properties:
+                    agentId:
+                      description: AgentId specifies the Kagent agent to call when
+                        this event occurs
+                      minLength: 1
+                      type: string
+                    eventType:
+                      description: EventType specifies the type of Kubernetes event
+                        to monitor
+                      enum:
+                      - pod-restart
+                      - pod-pending
+                      - oom-kill
+                      - probe-failed
+                      type: string
+                    prompt:
+                      description: Prompt specifies the prompt template to send to
+                        the agent
+                      minLength: 1
+                      type: string
+                  required:
+                  - agentId
+                  - eventType
+                  - prompt
+                  type: object
+                minItems: 1
+                type: array
+            required:
+            - eventConfigurations
+            type: object
+          status:
+            description: HookStatus defines the observed state of Hook
+            properties:
+              activeEvents:
+                description: ActiveEvents contains the list of currently active events
+                items:
+                  description: ActiveEventStatus represents the status of an active
+                    event
+                  properties:
+                    eventType:
+                      description: EventType is the type of the active event
+                      type: string
+                    firstSeen:
+                      description: FirstSeen is when the event was first observed
+                      format: date-time
+                      type: string
+                    lastSeen:
+                      description: LastSeen is when the event was last observed
+                      format: date-time
+                      type: string
+                    resourceName:
+                      description: ResourceName is the name of the Kubernetes resource
+                        involved
+                      type: string
+                    status:
+                      description: Status indicates whether the event is firing or
+                        resolved
+                      enum:
+                      - firing
+                      - resolved
+                      type: string
+                  required:
+                  - eventType
+                  - firstSeen
+                  - lastSeen
+                  - resourceName
+                  - status
+                  type: object
+                type: array
+              lastUpdated:
+                description: LastUpdated indicates when the status was last updated
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

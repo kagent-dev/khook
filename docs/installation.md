@@ -13,14 +13,19 @@ This guide provides detailed instructions for installing and configuring the KAg
 
 ### Method 1: Helm Chart (Recommended)
 
-Install using the Helm chart from this repository:
+Install using the Helm charts from this repository (install CRDs first, then controller):
 
 ```bash
 # Clone the repository
 git clone https://github.com/antweiss/khook.git
 cd khook
 
-# Install with default values (namespace will be created)
+# Install CRDs
+helm install kagent-hook-crds ./charts/kagent-hook-crds \
+  --namespace kagent-system \
+  --create-namespace \
+  
+# Install controller with default values
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
   --create-namespace \
@@ -44,6 +49,9 @@ Chart location: charts/kagent-hook-controller (see repo tree).
 ```bash
 TMP_DIR="$(mktemp -d)" && \
   git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
+  helm install kagent-hook-crds "$TMP_DIR/khook/charts/kagent-hook-crds" \
+    --namespace kagent-system \
+    --create-namespace && \
   helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
     --namespace kagent-system \
     --create-namespace \

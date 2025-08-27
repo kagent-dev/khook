@@ -28,6 +28,11 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
    ```bash
    git clone https://github.com/antweiss/khook.git
    cd khook
+   # Install CRDs first
+   helm install kagent-hook-crds ./charts/kagent-hook-crds \
+     --namespace kagent-system \
+     --create-namespace
+   # Install controller
    helm install kagent-hook-controller ./charts/kagent-hook-controller \
      --namespace kagent-system \
      --create-namespace \
@@ -38,6 +43,9 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
    ```bash
    TMP_DIR="$(mktemp -d)" && \
      git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
+     helm install kagent-hook-crds "$TMP_DIR/khook/charts/kagent-hook-crds" \
+       --namespace kagent-system \
+       --create-namespace && \
      helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
        --namespace kagent-system \
        --create-namespace \

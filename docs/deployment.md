@@ -25,6 +25,12 @@ cd khook
 #### 2. Install the Controller with Helm
 
 ```bash
+# Install CRDs first
+helm install kagent-hook-crds ./charts/kagent-hook-crds \
+  --namespace kagent-system \
+  --create-namespace \
+
+# Install controller
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
   --create-namespace \
