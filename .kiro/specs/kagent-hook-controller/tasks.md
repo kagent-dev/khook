@@ -297,3 +297,35 @@
   - Add predictive scaling based on event patterns
   - Write performance tests for analytics workloads
   - _Requirements: Analytics, Performance monitoring_
+## De
+vOps and CI/CD Tasks
+
+- [x] 37. Initialize Git repository and version control
+  - Initialize Git repository with proper .gitignore for Go projects
+  - Commit all existing code files, specs, and documentation
+  - Set up proper commit message conventions and branch structure
+  - Add repository metadata and initial version tagging
+  - _Requirements: Version control, Code management_
+
+- [x] 38. Add Docker build and push capabilities
+  - Update Makefile with docker-build-hash and docker-push-hash targets
+  - Configure Docker image tagging with git hash: otomato/khook:<git-hash>
+  - Add Docker Hub authentication and push capabilities
+  - Create optimized .dockerignore for faster builds
+  - Add multi-architecture build support (amd64, arm64)
+  - _Requirements: Container deployment, Docker Hub integration_
+
+- [x] 39. Implement GitHub Actions CI/CD pipeline
+  - Create comprehensive CI workflow with test, build, and security scanning
+  - Add automated Docker image building and pushing on main branch
+  - Implement multi-stage pipeline with proper job dependencies
+  - Add code coverage reporting and security vulnerability scanning
+  - Create release workflow for tagged versions with multi-platform binaries
+  - _Requirements: Automated testing, Continuous deployment_
+
+- [ ] 40. Set up automated dependency management
+  - Configure Dependabot for Go modules, GitHub Actions, and Docker updates
+  - Add automated security updates and vulnerability patching
+  - Implement dependency review and approval workflows
+  - Create dependency update testing and validation
+  - _Requirements: Security maintenance, Dependency management_

@@ -1,5 +1,9 @@
 # Image URL to use all building/pushing image targets
 IMG ?= kagent/hook-controller:latest
+DOCKER_REGISTRY ?= otomato
+DOCKER_IMAGE ?= khook
+GIT_HASH ?= $(shell git rev-parse --short HEAD)
+DOCKER_TAG ?= $(GIT_HASH)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -58,6 +62,20 @@ docker-build: ## Build docker image with the manager.
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+.PHONY: docker-build-hash
+docker-build-hash: ## Build docker image with git hash tag.
+	docker build -t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker tag $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
+
+.PHONY: docker-push-hash
+docker-push-hash: docker-build-hash ## Build and push docker image with git hash tag to Docker Hub.
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
+
+.PHONY: docker-login
+docker-login: ## Login to Docker Hub (requires DOCKER_USERNAME and DOCKER_PASSWORD env vars).
+	@echo "$$DOCKER_PASSWORD" | docker login -u "$$DOCKER_USERNAME" --password-stdin
 
 ##@ Deployment
 

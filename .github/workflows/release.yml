@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOCKER_REGISTRY: otomato
+  DOCKER_IMAGE: khook
+  GO_VERSION: '1.21'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Build binaries
+      run: |
+        make build
+        # Build for multiple architectures
+        GOOS=linux GOARCH=amd64 go build -o bin/manager-linux-amd64 cmd/main.go
+        GOOS=linux GOARCH=arm64 go build -o bin/manager-linux-arm64 cmd/main.go
+        GOOS=darwin GOARCH=amd64 go build -o bin/manager-darwin-amd64 cmd/main.go
+        GOOS=darwin GOARCH=arm64 go build -o bin/manager-darwin-arm64 cmd/main.go
+        GOOS=windows GOARCH=amd64 go build -o bin/manager-windows-amd64.exe cmd/main.go
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract tag name
+      id: tag
+      run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ steps.tag.outputs.tag }}
+          ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate release manifests
+      run: |
+        mkdir -p release
+        # Generate install manifest
+        cat > release/install.yaml << EOF
+        # KAgent Hook Controller Installation Manifest
+        # Version: ${{ steps.tag.outputs.tag }}
+        ---
+        EOF
+        cat config/crd/bases/kagent.dev_hooks.yaml >> release/install.yaml
+        echo "---" >> release/install.yaml
+        # Add RBAC and deployment manifests here when they exist
+        
+        # Generate CRD-only manifest
+        cp config/crd/bases/kagent.dev_hooks.yaml release/crds.yaml
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: Release ${{ steps.tag.outputs.tag }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+        files: |
+          bin/manager-*
+          release/install.yaml
+          release/crds.yaml
+        body: |
+          ## Docker Images
+          
+          ```bash
+          docker pull ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ steps.tag.outputs.tag }}
+          ```
+          
+          ## Installation
+          
+          ```bash
+          kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/install.yaml
+          ```
+          
+          ## What's Changed
+          
+          See the full changelog below.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
