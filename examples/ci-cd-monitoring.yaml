@@ -1,0 +1,151 @@
+# CI/CD Pipeline Monitoring Hook
+# This example monitors events related to CI/CD pipelines and deployments
+# with focus on build and deployment automation.
+
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: ci-cd-monitoring
+  namespace: ci-cd
+  labels:
+    monitoring-type: ci-cd
+    automation: deployment
+spec:
+  eventConfigurations:
+  # Monitor pod pending issues in CI/CD environments
+  - eventType: pod-pending
+    agentId: ci-cd-engineer
+    prompt: |
+      🚀 CI/CD ISSUE: Deployment scheduling problem
+      
+      Pipeline Event:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Pending Since: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      CI/CD PIPELINE ANALYSIS:
+      
+      1. DEPLOYMENT STATUS:
+         - Is this part of an active deployment?
+         - Which pipeline stage is affected?
+         - Are other deployments blocked by this issue?
+         - Impact on release timeline and schedule
+      
+      2. RESOURCE CONSTRAINTS:
+         - CI/CD cluster resource availability
+         - Build agent capacity and utilization
+         - Test environment resource conflicts
+         - Shared resource contention issues
+      
+      3. PIPELINE OPTIMIZATION:
+         - Resource allocation for build/test workloads
+         - Parallel execution optimization opportunities
+         - Build cache and artifact management
+         - Test environment provisioning efficiency
+      
+      4. AUTOMATION IMPROVEMENTS:
+         - Auto-scaling configuration for CI/CD workloads
+         - Resource cleanup automation
+         - Pipeline retry and recovery mechanisms
+         - Monitoring and alerting for pipeline health
+      
+      5. IMMEDIATE ACTIONS:
+         - Steps to unblock the current deployment
+         - Resource scaling recommendations
+         - Pipeline configuration adjustments
+         - Communication to development teams
+      
+      Focus on maintaining deployment velocity and reliability.
+
+  # Monitor restarts in CI/CD environments
+  - eventType: pod-restart
+    agentId: ci-cd-engineer
+    prompt: |
+      🔧 CI/CD ALERT: Build/test pod restarted
+      
+      Pipeline Restart:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      CI/CD IMPACT ANALYSIS:
+      
+      1. PIPELINE IMPACT:
+         - Which build or test job was affected?
+         - Is the pipeline failure blocking releases?
+         - Are there cascading effects on other pipelines?
+         - Data loss risk for build artifacts or test results
+      
+      2. BUILD ENVIRONMENT ISSUES:
+         - Build agent stability and configuration
+         - Resource limits for build/test workloads
+         - Dependency management and caching issues
+         - Test environment consistency problems
+      
+      3. AUTOMATION RELIABILITY:
+         - Pipeline retry logic effectiveness
+         - Error handling and recovery mechanisms
+         - Build reproducibility and consistency
+         - Test flakiness and reliability issues
+      
+      4. OPTIMIZATION OPPORTUNITIES:
+         - Build time optimization strategies
+         - Resource utilization improvements
+         - Parallel execution enhancements
+         - Caching and artifact management
+      
+      5. RECOVERY ACTIONS:
+         - Immediate steps to restore pipeline
+         - Build/test re-execution procedures
+         - Artifact recovery if needed
+         - Timeline impact assessment
+      
+      Ensure minimal disruption to development workflow.
+
+  # Monitor probe failures in CI/CD services
+  - eventType: probe-failed
+    agentId: ci-cd-engineer
+    prompt: |
+      ⚠️ CI/CD SERVICE: Health check failure
+      
+      Service Health Issue:
+      - Service: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      CI/CD SERVICE ANALYSIS:
+      
+      1. SERVICE AVAILABILITY:
+         - Which CI/CD service is affected?
+         - Impact on active builds and deployments
+         - User access and functionality impact
+         - Integration with external tools and services
+      
+      2. DEPENDENCY ANALYSIS:
+         - Database or storage connectivity issues
+         - External service integration problems
+         - Authentication and authorization service health
+         - Network connectivity and DNS resolution
+      
+      3. PERFORMANCE ISSUES:
+         - Service response time degradation
+         - Resource utilization and bottlenecks
+         - Queue processing and job execution delays
+         - Concurrent user load impact
+      
+      4. CONFIGURATION VALIDATION:
+         - Service configuration correctness
+         - Environment variable and secret validation
+         - Network policies and security settings
+         - Load balancer and ingress configuration
+      
+      5. RECOVERY STRATEGY:
+         - Immediate service restoration steps
+         - Failover to backup systems if available
+         - User communication and status updates
+         - Post-incident review and improvements
+      
+      Prioritize restoring CI/CD service availability quickly.

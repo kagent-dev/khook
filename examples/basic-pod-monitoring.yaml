@@ -1,0 +1,61 @@
+# Basic Pod Monitoring Hook
+# This example demonstrates monitoring pod restarts and OOM kills
+# in a development or staging environment.
+
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: basic-pod-monitoring
+  namespace: default
+  labels:
+    environment: development
+    monitoring-type: basic
+spec:
+  eventConfigurations:
+  # Monitor pod restarts
+  - eventType: pod-restart
+    agentId: pod-restart-analyzer
+    prompt: |
+      A pod named {{.ResourceName}} has restarted at {{.EventTime}} in namespace {{.Namespace}}.
+      
+      Event details:
+      - Resource: {{.ResourceName}}
+      - Timestamp: {{.EventTime}}
+      - Namespace: {{.Namespace}}
+      - Event Message: {{.EventMessage}}
+      
+      Please analyze the restart reason and provide:
+      1. Possible causes for the restart
+      2. Troubleshooting steps to investigate further
+      3. Preventive measures to avoid future restarts
+      
+      Focus on common issues like:
+      - Application crashes or exceptions
+      - Resource limits (CPU/memory)
+      - Health check failures
+      - Configuration problems
+
+  # Monitor OOM kills
+  - eventType: oom-kill
+    agentId: memory-optimizer
+    prompt: |
+      Pod {{.ResourceName}} was killed due to out-of-memory (OOM) at {{.EventTime}} in namespace {{.Namespace}}.
+      
+      Event details:
+      - Resource: {{.ResourceName}}
+      - Timestamp: {{.EventTime}}
+      - Namespace: {{.Namespace}}
+      - Event Message: {{.EventMessage}}
+      
+      Please provide:
+      1. Analysis of why the OOM kill occurred
+      2. Memory usage optimization strategies
+      3. Recommended memory limits and requests
+      4. Code-level optimizations to reduce memory usage
+      5. Monitoring recommendations to prevent future OOM kills
+      
+      Consider factors like:
+      - Memory leaks in the application
+      - Inefficient data structures or algorithms
+      - Large object allocations
+      - Garbage collection issues

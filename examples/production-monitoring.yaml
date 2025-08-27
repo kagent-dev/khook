@@ -1,0 +1,174 @@
+# Production Monitoring Hook
+# This example demonstrates comprehensive monitoring for production workloads
+# with high-priority incident response and detailed analysis.
+
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: production-monitoring
+  namespace: production
+  labels:
+    environment: production
+    monitoring-type: comprehensive
+    priority: high
+spec:
+  eventConfigurations:
+  # Critical: Pod restarts in production
+  - eventType: pod-restart
+    agentId: incident-manager
+    prompt: |
+      🚨 PRODUCTION ALERT: Pod restart detected
+      
+      Incident Details:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      PRIORITY: HIGH - Immediate investigation required
+      
+      Please provide:
+      1. IMMEDIATE ACTIONS:
+         - Is this a critical service?
+         - Are users impacted?
+         - Should we page the on-call engineer?
+      
+      2. ROOT CAUSE ANALYSIS:
+         - Check recent deployments or configuration changes
+         - Analyze application logs for errors or exceptions
+         - Review resource utilization trends
+         - Examine health check failures
+      
+      3. INCIDENT RESPONSE PLAN:
+         - Steps to restore service if degraded
+         - Communication plan for stakeholders
+         - Rollback procedures if needed
+         - Monitoring to track recovery
+      
+      4. PREVENTION MEASURES:
+         - Configuration improvements
+         - Monitoring enhancements
+         - Process improvements
+      
+      Escalate to on-call if this affects critical user-facing services.
+
+  # Pod stuck in pending state
+  - eventType: pod-pending
+    agentId: scheduling-analyzer
+    prompt: |
+      ⚠️ PRODUCTION ISSUE: Pod scheduling problem
+      
+      Scheduling Issue:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Pending Since: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      Please analyze and provide:
+      1. IMMEDIATE ASSESSMENT:
+         - How long has the pod been pending?
+         - Is this blocking critical functionality?
+         - Are there similar issues with other pods?
+      
+      2. SCHEDULING ANALYSIS:
+         - Check node resource availability (CPU, memory, storage)
+         - Verify node selectors and affinity rules
+         - Review taints and tolerations
+         - Check for PVC binding issues
+         - Analyze image pull problems
+      
+      3. RESOLUTION STEPS:
+         - Immediate actions to resolve scheduling
+         - Resource scaling recommendations
+         - Configuration adjustments needed
+      
+      4. CAPACITY PLANNING:
+         - Current cluster utilization
+         - Scaling recommendations
+         - Resource allocation optimization
+      
+      Monitor closely and escalate if pending time exceeds SLA thresholds.
+
+  # Health probe failures
+  - eventType: probe-failed
+    agentId: health-checker
+    prompt: |
+      🔍 PRODUCTION HEALTH ISSUE: Probe failure detected
+      
+      Health Check Failure:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      Please investigate:
+      1. HEALTH STATUS:
+         - Is the application actually unhealthy?
+         - Are users experiencing issues?
+         - Is this a false positive?
+      
+      2. PROBE ANALYSIS:
+         - Check probe configuration (path, port, timing)
+         - Review application startup time vs probe timing
+         - Analyze application logs for health endpoint errors
+         - Verify network connectivity to health endpoint
+      
+      3. APPLICATION HEALTH:
+         - Database connectivity issues
+         - External service dependencies
+         - Resource constraints affecting performance
+         - Configuration problems
+      
+      4. REMEDIATION:
+         - Immediate steps to restore health
+         - Probe configuration adjustments
+         - Application fixes needed
+         - Monitoring improvements
+      
+      If health checks continue failing, consider emergency procedures.
+
+  # Critical: OOM kills in production
+  - eventType: oom-kill
+    agentId: capacity-planner
+    prompt: |
+      🚨 CRITICAL PRODUCTION ISSUE: OOM Kill Event
+      
+      Out of Memory Kill:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      CRITICAL PRIORITY - Immediate action required
+      
+      Please provide:
+      1. IMMEDIATE IMPACT ASSESSMENT:
+         - Service availability status
+         - User impact severity
+         - Data loss risk assessment
+         - Need for emergency scaling
+      
+      2. MEMORY ANALYSIS:
+         - Historical memory usage patterns
+         - Memory leak indicators
+         - Inefficient memory usage patterns
+         - Comparison with similar services
+      
+      3. EMERGENCY RESPONSE:
+         - Immediate memory limit increases
+         - Horizontal scaling recommendations
+         - Service restart procedures
+         - User communication needs
+      
+      4. CAPACITY PLANNING:
+         - Right-sizing recommendations
+         - Resource allocation strategy
+         - Performance optimization opportunities
+         - Monitoring and alerting improvements
+      
+      5. LONG-TERM FIXES:
+         - Application memory optimization
+         - Architecture improvements
+         - Resource management best practices
+      
+      This is a critical production issue - escalate immediately if service is impacted.

@@ -1,0 +1,69 @@
+# Multi-Namespace Monitoring Example
+# This example shows how to set up monitoring across multiple namespaces
+# with different agents for different environments.
+
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: staging-monitoring
+  namespace: staging
+  labels:
+    environment: staging
+    monitoring-type: pre-production
+spec:
+  eventConfigurations:
+  # Staging environment monitoring with production-like analysis
+  - eventType: pod-restart
+    agentId: staging-analyzer
+    prompt: |
+      📊 STAGING: Pod restart analysis needed
+      
+      Pod {{.ResourceName}} restarted in staging at {{.EventTime}}.
+      
+      Staging-specific analysis:
+      1. Compare with production behavior
+      2. Validate recent deployment changes
+      3. Check if this would impact production
+      4. Test rollback procedures if needed
+      
+      Use this as a production readiness check!
+
+  - eventType: probe-failed
+    agentId: staging-analyzer
+    prompt: |
+      🔍 STAGING: Health probe failure
+      
+      Health check failed for {{.ResourceName}} at {{.EventTime}}.
+      
+      Pre-production validation:
+      1. Would this pass production health checks?
+      2. Are probe timeouts realistic for production load?
+      3. Test health endpoint under load
+      4. Validate monitoring and alerting
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: test-monitoring
+  namespace: test
+  labels:
+    environment: test
+    monitoring-type: automated-testing
+spec:
+  eventConfigurations:
+  # Test environment with focus on CI/CD pipeline issues
+  - eventType: pod-pending
+    agentId: ci-cd-helper
+    prompt: |
+      🤖 TEST ENV: Pod scheduling issue
+      
+      Pod {{.ResourceName}} pending since {{.EventTime}}.
+      
+      CI/CD troubleshooting:
+      1. Check if test cluster has sufficient resources
+      2. Verify test data setup completed
+      3. Check for resource conflicts with other tests
+      4. Validate test environment configuration
+      
+      This might indicate test infrastructure issues.

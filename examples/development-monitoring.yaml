@@ -1,0 +1,51 @@
+# Development Environment Monitoring Hook
+# This example provides lightweight monitoring for development environments
+# with helpful debugging tips and learning opportunities.
+
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: dev-monitoring
+  namespace: development
+  labels:
+    environment: development
+    monitoring-type: educational
+spec:
+  eventConfigurations:
+  # Development-friendly pod restart monitoring
+  - eventType: pod-restart
+    agentId: dev-helper
+    prompt: |
+      🔧 Dev Environment: Pod restarted
+      
+      Pod {{.ResourceName}} restarted at {{.EventTime}}.
+      
+      Quick debugging checklist:
+      1. Check recent code changes
+      2. Review application logs: kubectl logs {{.ResourceName}} --previous
+      3. Verify resource limits are appropriate for dev workloads
+      4. Check for configuration issues
+      
+      Common dev environment causes:
+      - Code changes causing crashes
+      - Missing environment variables
+      - Database connection issues
+      - Resource limits too low for debugging
+      
+      Learning opportunity: Use this as a chance to improve error handling!
+
+  # OOM kills in development
+  - eventType: oom-kill
+    agentId: dev-helper
+    prompt: |
+      💡 Dev Environment: OOM kill occurred
+      
+      Pod {{.ResourceName}} hit memory limits at {{.EventTime}}.
+      
+      Development tips:
+      1. Increase memory limits for development: resources.limits.memory
+      2. Profile your application's memory usage
+      3. Check for memory leaks in recent changes
+      4. Consider using memory profiling tools
+      
+      This is a great learning opportunity to understand memory management!

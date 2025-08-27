@@ -1,0 +1,91 @@
+# Security-Focused Monitoring Hook
+# This example demonstrates monitoring for security-related events
+# with emphasis on incident response and forensic analysis.
+
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: security-monitoring
+  namespace: kube-system
+  labels:
+    monitoring-type: security
+    priority: critical
+spec:
+  eventConfigurations:
+  # Monitor unexpected pod restarts that could indicate security issues
+  - eventType: pod-restart
+    agentId: security-analyst
+    prompt: |
+      🔒 SECURITY ALERT: Unexpected pod restart detected
+      
+      Security Event Details:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      SECURITY ANALYSIS REQUIRED:
+      
+      1. IMMEDIATE THREAT ASSESSMENT:
+         - Was this restart expected or scheduled?
+         - Are there signs of compromise or attack?
+         - Check for suspicious process activity before restart
+         - Review recent authentication events
+      
+      2. FORENSIC INVESTIGATION:
+         - Analyze container logs for security events
+         - Check for privilege escalation attempts
+         - Review network connections and traffic patterns
+         - Examine file system changes
+      
+      3. INCIDENT RESPONSE:
+         - Isolate affected resources if compromise suspected
+         - Preserve logs and evidence
+         - Notify security team if indicators of compromise found
+         - Document timeline of events
+      
+      4. SECURITY RECOMMENDATIONS:
+         - Review pod security policies
+         - Check for security updates needed
+         - Validate access controls and permissions
+         - Recommend security hardening measures
+      
+      Treat this as a potential security incident until proven otherwise.
+
+  # Monitor probe failures that could indicate tampering
+  - eventType: probe-failed
+    agentId: security-analyst
+    prompt: |
+      🛡️ SECURITY CONCERN: Health probe failure
+      
+      Probe Failure Details:
+      - Pod: {{.ResourceName}}
+      - Namespace: {{.Namespace}}
+      - Time: {{.EventTime}}
+      - Message: {{.EventMessage}}
+      
+      SECURITY IMPLICATIONS ANALYSIS:
+      
+      1. TAMPERING ASSESSMENT:
+         - Could this indicate application tampering?
+         - Check for unauthorized configuration changes
+         - Review recent deployments or updates
+         - Verify integrity of health check endpoints
+      
+      2. ATTACK VECTOR ANALYSIS:
+         - Is this part of a denial of service attack?
+         - Check for resource exhaustion attacks
+         - Review network traffic for anomalies
+         - Analyze authentication and authorization logs
+      
+      3. SECURITY VALIDATION:
+         - Verify application security controls are intact
+         - Check for signs of code injection or modification
+         - Review access logs for suspicious activity
+         - Validate security policies are being enforced
+      
+      4. RESPONSE ACTIONS:
+         - Monitor for additional security indicators
+         - Consider temporary isolation if suspicious
+         - Document findings for security review
+         - Recommend security assessment if needed

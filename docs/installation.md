@@ -1,0 +1,358 @@
+# Installation Guide
+
+This guide provides detailed instructions for installing and configuring the KAgent Hook Controller.
+
+## Prerequisites
+
+- Kubernetes cluster (v1.20 or later)
+- kubectl configured to access your cluster
+- Cluster admin permissions for CRD installation
+- Kagent platform access with API credentials
+
+## Installation Methods
+
+### Method 1: Quick Install (Recommended)
+
+Install using the pre-built manifests:
+
+```bash
+# Install CRDs, RBAC, and controller
+kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+
+# Verify installation
+kubectl get pods -n kagent-system
+```
+
+### Method 2: Helm Chart
+
+Install using Helm for more configuration options:
+
+```bash
+# Add the Kagent Helm repository
+helm repo add kagent https://charts.kagent.dev
+helm repo update
+
+# Install with default values
+helm install kagent-hook-controller kagent/kagent-hook-controller \
+  --namespace kagent-system \
+  --create-namespace
+
+# Or install with custom values
+helm install kagent-hook-controller kagent/kagent-hook-controller \
+  --namespace kagent-system \
+  --create-namespace \
+  --set kagent.apiKey=your-api-key \
+  --set kagent.baseUrl=https://api.kagent.dev
+```
+
+### Method 3: Manual Installation
+
+For custom deployments or development:
+
+```bash
+# Clone the repository
+git clone https://github.com/kagent-dev/kagent-hook-controller.git
+cd kagent-hook-controller
+
+# Install CRDs
+kubectl apply -f config/crd/bases/
+
+# Install RBAC
+kubectl apply -f config/rbac/
+
+# Install controller
+kubectl apply -f config/manager/
+```
+
+## Configuration
+
+### 1. Kagent API Credentials
+
+Create a secret with your Kagent API credentials:
+
+```bash
+kubectl create secret generic kagent-credentials \
+  --from-literal=api-key=your-kagent-api-key \
+  --from-literal=base-url=https://api.kagent.dev \
+  --namespace kagent-system
+```
+
+### 2. Controller Configuration
+
+Configure the controller using environment variables or ConfigMap:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kagent-hook-controller-config
+  namespace: kagent-system
+data:
+  LOG_LEVEL: "info"
+  METRICS_PORT: "8080"
+  HEALTH_PORT: "8081"
+  LEADER_ELECTION: "true"
+  EVENT_RESYNC_PERIOD: "10m"
+  DEDUPLICATION_TIMEOUT: "10m"
+```
+
+### 3. Resource Limits
+
+Configure appropriate resource limits:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kagent-hook-controller
+  namespace: kagent-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+```
+
+## Verification
+
+### 1. Check Controller Status
+
+```bash
+# Verify controller is running
+kubectl get pods -n kagent-system -l app=kagent-hook-controller
+
+# Check controller logs
+kubectl logs -n kagent-system deployment/kagent-hook-controller
+```
+
+### 2. Verify CRD Installation
+
+```bash
+# Check if Hook CRD is installed
+kubectl get crd hooks.kagent.dev
+
+# Verify CRD schema
+kubectl describe crd hooks.kagent.dev
+```
+
+### 3. Test Basic Functionality
+
+Create a test hook:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: test-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - eventType: pod-restart
+    agentId: test-agent
+    prompt: "Test hook is working"
+EOF
+```
+
+Verify the hook was created:
+
+```bash
+kubectl get hooks
+kubectl describe hook test-hook
+```
+
+## Production Configuration
+
+### High Availability
+
+For production deployments, configure high availability:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kagent-hook-controller
+  namespace: kagent-system
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: LEADER_ELECTION
+          value: "true"
+        - name: LEADER_ELECTION_NAMESPACE
+          value: "kagent-system"
+```
+
+### Security Hardening
+
+1. **Use dedicated service account:**
+   ```yaml
+   apiVersion: v1
+   kind: ServiceAccount
+   metadata:
+     name: kagent-hook-controller
+     namespace: kagent-system
+   ```
+
+2. **Apply security context:**
+   ```yaml
+   securityContext:
+     runAsNonRoot: true
+     runAsUser: 65532
+     fsGroup: 65532
+     seccompProfile:
+       type: RuntimeDefault
+   ```
+
+3. **Network policies:**
+   ```yaml
+   apiVersion: networking.k8s.io/v1
+   kind: NetworkPolicy
+   metadata:
+     name: kagent-hook-controller
+     namespace: kagent-system
+   spec:
+     podSelector:
+       matchLabels:
+         app: kagent-hook-controller
+     policyTypes:
+     - Ingress
+     - Egress
+     egress:
+     - to: []
+       ports:
+       - protocol: TCP
+         port: 443  # HTTPS to Kagent API
+     - to:
+       - namespaceSelector: {}
+       ports:
+       - protocol: TCP
+         port: 6443  # Kubernetes API
+   ```
+
+### Monitoring Setup
+
+1. **Enable metrics:**
+   ```yaml
+   - name: METRICS_ENABLED
+     value: "true"
+   - name: METRICS_PORT
+     value: "8080"
+   ```
+
+2. **Configure ServiceMonitor for Prometheus:**
+   ```yaml
+   apiVersion: monitoring.coreos.com/v1
+   kind: ServiceMonitor
+   metadata:
+     name: kagent-hook-controller
+     namespace: kagent-system
+   spec:
+     selector:
+       matchLabels:
+         app: kagent-hook-controller
+     endpoints:
+     - port: metrics
+       interval: 30s
+       path: /metrics
+   ```
+
+## Troubleshooting Installation
+
+### Common Issues
+
+1. **CRD Installation Fails:**
+   ```bash
+   # Check cluster admin permissions
+   kubectl auth can-i create customresourcedefinitions
+   
+   # Manually install CRDs
+   kubectl apply -f config/crd/bases/ --validate=false
+   ```
+
+2. **Controller Won't Start:**
+   ```bash
+   # Check RBAC permissions
+   kubectl auth can-i get events --as=system:serviceaccount:kagent-system:kagent-hook-controller
+   
+   # Check resource constraints
+   kubectl describe pod -n kagent-system -l app=kagent-hook-controller
+   ```
+
+3. **API Connection Issues:**
+   ```bash
+   # Verify credentials
+   kubectl get secret kagent-credentials -n kagent-system -o yaml
+   
+   # Test connectivity
+   kubectl exec -n kagent-system deployment/kagent-hook-controller -- \
+     curl -v https://api.kagent.dev/health
+   ```
+
+### Debug Mode
+
+Enable debug logging for troubleshooting:
+
+```bash
+kubectl set env deployment/kagent-hook-controller -n kagent-system LOG_LEVEL=debug
+```
+
+## Upgrading
+
+### Helm Upgrade
+
+```bash
+helm repo update
+helm upgrade kagent-hook-controller kagent/kagent-hook-controller \
+  --namespace kagent-system
+```
+
+### Manual Upgrade
+
+```bash
+# Update CRDs first
+kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/crds.yaml
+
+# Update controller
+kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+```
+
+## Uninstallation
+
+### Complete Removal
+
+```bash
+# Remove hooks (this will stop monitoring)
+kubectl delete hooks --all -A
+
+# Remove controller
+kubectl delete -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+
+# Remove CRDs (optional - this will delete all hook resources)
+kubectl delete crd hooks.kagent.dev
+```
+
+### Helm Uninstall
+
+```bash
+helm uninstall kagent-hook-controller --namespace kagent-system
+```
+
+## Next Steps
+
+After installation:
+
+1. **Configure your first hook** using the [examples](../examples/)
+2. **Set up monitoring** following the [monitoring guide](monitoring.md)
+3. **Review security** with the [security guide](security.md)
+4. **Read troubleshooting** in the [troubleshooting guide](troubleshooting.md)
