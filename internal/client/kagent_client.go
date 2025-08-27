@@ -21,7 +21,7 @@ type Config struct {
 // DefaultConfig returns a default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		BaseURL: "http://kagent-controller.kagent.svc.local:8083",
+		BaseURL: "https://api.kagent.dev",
 		UserID:  "hook-controller",
 		Timeout: 30 * time.Second,
 	}

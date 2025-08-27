@@ -81,6 +81,10 @@ func Load(configFile string) (*Config, error) {
 	config := DefaultConfig()
 
 	// Override with environment variables
+	if baseURL := os.Getenv("KAGENT_API_URL"); baseURL != "" {
+		config.Kagent.BaseURL = baseURL
+	}
+	// Also support legacy KAGENT_BASE_URL for backward compatibility
 	if baseURL := os.Getenv("KAGENT_BASE_URL"); baseURL != "" {
 		config.Kagent.BaseURL = baseURL
 	}

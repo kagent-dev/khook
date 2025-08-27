@@ -1,0 +1,19 @@
+apiVersion: v2
+name: kagent-hook-controller
+description: A Kubernetes controller that enables automated responses to Kubernetes events by integrating with the Kagent platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/kagent-dev/kagent-hook-controller
+sources:
+- https://github.com/kagent-dev/kagent-hook-controller
+maintainers:
+- name: Kagent Team
+  email: support@kagent.dev
+keywords:
+- kubernetes
+- controller
+- automation
+- events
+- kagent
+- hooks

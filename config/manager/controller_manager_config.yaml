@@ -1,0 +1,25 @@
+apiVersion: config.kagent.dev/v1alpha1
+kind: ControllerManagerConfig
+metadata:
+  name: controller-manager-config
+health:
+  healthProbeBindAddress: :8081
+metrics:
+  bindAddress: :8080
+webhook:
+  port: 9443
+leaderElection:
+  leaderElect: true
+  resourceName: kagent-hook-controller-leader-election
+  resourceNamespace: kagent-system
+kagent:
+  apiUrl: "https://api.kagent.dev"
+  timeout: "30s"
+  retryAttempts: 3
+  retryBackoff: "1s"
+logging:
+  level: "info"
+  format: "json"
+deduplication:
+  timeoutMinutes: 10
+  cleanupIntervalMinutes: 5

@@ -89,8 +89,46 @@ uninstall: ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 
 .PHONY: deploy
 deploy: ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	kubectl apply -f config/default
+	kubectl apply -k config/default
 
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	kubectl delete -f config/default
+	kubectl delete -k config/default
+
+.PHONY: deploy-samples
+deploy-samples: ## Deploy sample Hook resources.
+	kubectl apply -f config/samples/
+
+.PHONY: undeploy-samples
+undeploy-samples: ## Remove sample Hook resources.
+	kubectl delete -f config/samples/
+
+.PHONY: kustomize-build
+kustomize-build: ## Build kustomized manifests.
+	kubectl kustomize config/default
+
+##@ Helm
+
+.PHONY: helm-lint
+helm-lint: ## Lint Helm chart.
+	helm lint charts/kagent-hook-controller
+
+.PHONY: helm-template
+helm-template: ## Generate Helm templates.
+	helm template kagent-hook-controller charts/kagent-hook-controller
+
+.PHONY: helm-install
+helm-install: ## Install Helm chart.
+	helm install kagent-hook-controller charts/kagent-hook-controller \
+		--namespace kagent-system \
+		--create-namespace \
+		--set kagent.apiToken="$(KAGENT_API_TOKEN)"
+
+.PHONY: helm-upgrade
+helm-upgrade: ## Upgrade Helm chart.
+	helm upgrade kagent-hook-controller charts/kagent-hook-controller \
+		--namespace kagent-system
+
+.PHONY: helm-uninstall
+helm-uninstall: ## Uninstall Helm chart.
+	helm uninstall kagent-hook-controller --namespace kagent-system

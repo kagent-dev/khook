@@ -13,8 +13,10 @@ func NewClientFromEnv(logger logr.Logger) (*Client, error) {
 	config := DefaultConfig()
 
 	// Override with environment variables if present
-	if baseURL := os.Getenv("KAGENT_API_BASE_URL"); baseURL != "" {
+	if baseURL := os.Getenv("KAGENT_API_URL"); baseURL != "" {
 		config.BaseURL = baseURL
+	} else if legacyBaseURL := os.Getenv("KAGENT_API_BASE_URL"); legacyBaseURL != "" { // legacy fallback
+		config.BaseURL = legacyBaseURL
 	}
 
 	if userID := os.Getenv("KAGENT_USER_ID"); userID != "" {

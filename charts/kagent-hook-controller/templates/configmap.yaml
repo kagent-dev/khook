@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kagent-hook-controller.fullname" . }}-config
+  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  labels:
+    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+data:
+  controller_manager_config.yaml: |
+    apiVersion: config.kagent.dev/v1alpha1
+    kind: ControllerManagerConfig
+    metadata:
+      name: controller-manager-config
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: :8080
+    webhook:
+      port: 9443
+    {{- if .Values.controller.leaderElection.enabled }}
+    leaderElection:
+      leaderElect: true
+      resourceName: {{ .Values.controller.leaderElection.resourceName }}
+      resourceNamespace: {{ include "kagent-hook-controller.namespace" . }}
+    {{- end }}
+    kagent:
+      apiUrl: {{ .Values.kagent.apiUrl | quote }}
+      timeout: {{ .Values.kagent.timeout | quote }}
+      retryAttempts: {{ .Values.kagent.retryAttempts }}
+      retryBackoff: {{ .Values.kagent.retryBackoff | quote }}
+    logging:
+      level: {{ .Values.controller.logLevel | quote }}
+      format: {{ .Values.controller.logFormat | quote }}
+    deduplication:
+      timeoutMinutes: {{ .Values.controller.deduplication.timeoutMinutes }}
+      cleanupIntervalMinutes: {{ .Values.controller.deduplication.cleanupIntervalMinutes }}
+  kagent-api-url: {{ .Values.kagent.apiUrl | quote }}
+  log-level: {{ .Values.controller.logLevel | quote }}
+  deduplication-timeout-minutes: {{ .Values.controller.deduplication.timeoutMinutes | quote }}
+  cleanup-interval-minutes: {{ .Values.controller.deduplication.cleanupIntervalMinutes | quote }}
+  retry-attempts: {{ .Values.kagent.retryAttempts | quote }}
+  retry-backoff: {{ .Values.kagent.retryBackoff | quote }}
+  api-timeout: {{ .Values.kagent.timeout | quote }}

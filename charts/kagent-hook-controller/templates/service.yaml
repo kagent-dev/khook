@@ -1,0 +1,19 @@
+{{- if .Values.metrics.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kagent-hook-controller.fullname" . }}-metrics
+  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  labels:
+    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: {{ .Values.metrics.port }}
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    {{- include "kagent-hook-controller.selectorLabels" . | nindent 4 }}
+{{- end }}

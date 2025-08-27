@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kagent-hook-controller.fullname" . }}
+  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  labels:
+    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kagent-hook-controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        {{- include "kagent-hook-controller.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "kagent-hook-controller.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: manager
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /manager
+        args:
+        {{- if .Values.controller.leaderElection.enabled }}
+        - --leader-elect
+        {{- end }}
+        - --config=/etc/config/controller_manager_config.yaml
+        env:
+        - name: KAGENT_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "kagent-hook-controller.fullname" . }}-config
+              key: kagent-api-url
+        {{- if .Values.kagent.apiToken }}
+        - name: KAGENT_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "kagent-hook-controller.fullname" . }}-credentials
+              key: api-token
+        {{- end }}
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "kagent-hook-controller.fullname" . }}-config
+              key: log-level
+        - name: METRICS_BIND_ADDRESS
+          value: ":8080"
+        - name: HEALTH_PROBE_BIND_ADDRESS
+          value: ":8081"
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        - name: health
+          containerPort: 8081
+          protocol: TCP
+        livenessProbe:
+          {{- toYaml .Values.healthCheck.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.healthCheck.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "kagent-hook-controller.fullname" . }}-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 10

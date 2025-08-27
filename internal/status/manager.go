@@ -201,7 +201,7 @@ func (m *Manager) RecordDuplicateEvent(ctx context.Context, hookInterface interf
 }
 
 // GetHookStatus retrieves the current status of a Hook resource
-func (m *Manager) GetHookStatus(ctx context.Context, hookName, namespace string) (interface{}, error) {
+func (m *Manager) GetHookStatus(ctx context.Context, hookName, namespace string) (*v1alpha2.HookStatus, error) {
 	hook := &v1alpha2.Hook{}
 	key := client.ObjectKey{Name: hookName, Namespace: namespace}
 

@@ -119,9 +119,12 @@ func (m *MockStatusManager) RecordDuplicateEvent(ctx context.Context, hook inter
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) GetHookStatus(ctx context.Context, hookName, namespace string) (interface{}, error) {
+func (m *MockStatusManager) GetHookStatus(ctx context.Context, hookName, namespace string) (*v1alpha2.HookStatus, error) {
 	args := m.Called(ctx, hookName, namespace)
-	return args.Get(0), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*v1alpha2.HookStatus), args.Error(1)
 }
 
 func (m *MockStatusManager) LogControllerStartup(ctx context.Context, version string, config map[string]interface{}) {

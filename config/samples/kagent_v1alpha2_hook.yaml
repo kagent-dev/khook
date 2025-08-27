@@ -1,0 +1,22 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: hook-sample
+  namespace: default
+  labels:
+    app.kubernetes.io/name: hook
+    app.kubernetes.io/instance: hook-sample
+    app.kubernetes.io/part-of: kagent-hook-controller
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kagent-hook-controller
+spec:
+  eventConfigurations:
+  - eventType: "pod-restart"
+    agentId: "pod-restart-agent"
+    prompt: "A pod has restarted. Please analyze the restart reason and provide recommendations."
+  - eventType: "pod-pending"
+    agentId: "scheduling-agent"
+    prompt: "A pod is stuck in pending state. Please investigate scheduling issues and suggest solutions."
+  - eventType: "oom-kill"
+    agentId: "memory-agent"
+    prompt: "A pod was killed due to out of memory. Please analyze memory usage and provide optimization recommendations."

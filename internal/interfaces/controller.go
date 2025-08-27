@@ -3,6 +3,8 @@ package interfaces
 import (
 	"context"
 	"time"
+
+	"github.com/kagent/hook-controller/api/v1alpha2"
 )
 
 // ControllerManager orchestrates the controller lifecycle and watches
@@ -89,7 +91,7 @@ type StatusManager interface {
 	RecordAgentCallSuccess(ctx context.Context, hook interface{}, event Event, agentId, requestId string) error
 	RecordAgentCallFailure(ctx context.Context, hook interface{}, event Event, agentId string, err error) error
 	RecordDuplicateEvent(ctx context.Context, hook interface{}, event Event) error
-	GetHookStatus(ctx context.Context, hookName, namespace string) (interface{}, error)
+	GetHookStatus(ctx context.Context, hookName, namespace string) (*v1alpha2.HookStatus, error)
 	LogControllerStartup(ctx context.Context, version string, config map[string]interface{})
 	LogControllerShutdown(ctx context.Context, reason string)
 }

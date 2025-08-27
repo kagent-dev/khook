@@ -15,11 +15,11 @@ func TestNewClientFromEnv(t *testing.T) {
 
 	t.Run("with all environment variables", func(t *testing.T) {
 		// Set environment variables
-		os.Setenv("KAGENT_API_BASE_URL", "https://custom.api.com")
+		os.Setenv("KAGENT_API_URL", "https://custom.api.com")
 		os.Setenv("KAGENT_USER_ID", "test-user")
 		os.Setenv("KAGENT_API_TIMEOUT", "45s")
 		defer func() {
-			os.Unsetenv("KAGENT_API_BASE_URL")
+			os.Unsetenv("KAGENT_API_URL")
 			os.Unsetenv("KAGENT_USER_ID")
 			os.Unsetenv("KAGENT_API_TIMEOUT")
 		}()
@@ -38,9 +38,35 @@ func TestNewClientFromEnv(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should use defaults for all values
-		assert.Equal(t, "http://kagent-controller.kagent.svc.local:8083", client.config.BaseURL)
+		assert.Equal(t, "https://api.kagent.dev", client.config.BaseURL)
 		assert.Equal(t, "hook-controller", client.config.UserID)
 		assert.Equal(t, 30*time.Second, client.config.Timeout)
+	})
+
+	t.Run("with legacy environment variable", func(t *testing.T) {
+		// Test backward compatibility with old environment variable name
+		os.Setenv("KAGENT_API_BASE_URL", "https://legacy.api.com")
+		defer os.Unsetenv("KAGENT_API_BASE_URL")
+
+		client, err := NewClientFromEnv(logger)
+		require.NoError(t, err)
+
+		assert.Equal(t, "https://legacy.api.com", client.config.BaseURL)
+	})
+
+	t.Run("new env var takes precedence over legacy", func(t *testing.T) {
+		// Both environment variables set, new one should take precedence
+		os.Setenv("KAGENT_API_URL", "https://new.api.com")
+		os.Setenv("KAGENT_API_BASE_URL", "https://legacy.api.com")
+		defer func() {
+			os.Unsetenv("KAGENT_API_URL")
+			os.Unsetenv("KAGENT_API_BASE_URL")
+		}()
+
+		client, err := NewClientFromEnv(logger)
+		require.NoError(t, err)
+
+		assert.Equal(t, "https://new.api.com", client.config.BaseURL)
 	})
 
 	t.Run("invalid timeout format", func(t *testing.T) {

@@ -28,7 +28,7 @@ func TestNewClient(t *testing.T) {
 
 	t.Run("with nil config uses defaults", func(t *testing.T) {
 		client := NewClient(nil, logger)
-		assert.Equal(t, "http://kagent-controller.kagent.svc.local:8083", client.config.BaseURL)
+		assert.Equal(t, "https://api.kagent.dev", client.config.BaseURL)
 		assert.Equal(t, "hook-controller", client.config.UserID)
 		assert.Equal(t, 30*time.Second, client.config.Timeout)
 	})
@@ -110,7 +110,7 @@ func TestClient_CallAgent(t *testing.T) {
 
 func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
-	assert.Equal(t, "http://kagent-controller.kagent.svc.local:8083", config.BaseURL)
+	assert.Equal(t, "https://api.kagent.dev", config.BaseURL)
 	assert.Equal(t, "hook-controller", config.UserID)
 	assert.Equal(t, 30*time.Second, config.Timeout)
 }

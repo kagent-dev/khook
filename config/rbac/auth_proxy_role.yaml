@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: proxy-role
+  labels:
+    app.kubernetes.io/name: kagent-hook-controller
+    app.kubernetes.io/instance: controller-manager
+    app.kubernetes.io/component: kube-rbac-proxy
+    app.kubernetes.io/created-by: kagent-hook-controller
+    app.kubernetes.io/part-of: kagent-hook-controller
+    app.kubernetes.io/managed-by: kustomize
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create

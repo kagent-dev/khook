@@ -1,0 +1,102 @@
+# Default values for kagent-hook-controller
+replicaCount: 1
+
+image:
+  repository: otomato/khook
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Kagent API configuration
+kagent:
+  apiUrl: "https://api.kagent.dev"
+  apiToken: ""
+  timeout: "30s"
+  retryAttempts: 3
+  retryBackoff: "1s"
+
+# Controller configuration
+controller:
+  logLevel: "info"
+  logFormat: "json"
+  leaderElection:
+    enabled: true
+    resourceName: "kagent-hook-controller-leader-election"
+  deduplication:
+    timeoutMinutes: 10
+    cleanupIntervalMinutes: 5
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# Health check configuration
+healthCheck:
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 8080
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    annotations: {}
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Node selector, tolerations, and affinity
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Namespace configuration
+namespace:
+  create: true
+  name: "kagent-system"
+
+# CRD installation
+crds:
+  install: true

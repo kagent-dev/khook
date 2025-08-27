@@ -1,0 +1,28 @@
+1. Access metrics endpoint by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace {{ include "kagent-hook-controller.namespace" . }} -l "app.kubernetes.io/name={{ include "kagent-hook-controller.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:8080/metrics to view metrics"
+  kubectl --namespace {{ include "kagent-hook-controller.namespace" . }} port-forward $POD_NAME 8080:8080
+
+2. Check the controller status:
+   kubectl get pods -n {{ include "kagent-hook-controller.namespace" . }} -l app.kubernetes.io/name={{ include "kagent-hook-controller.name" . }}
+
+3. View controller logs:
+   kubectl logs -n {{ include "kagent-hook-controller.namespace" . }} -l app.kubernetes.io/name={{ include "kagent-hook-controller.name" . }}
+
+4. Create a sample Hook resource:
+   kubectl apply -f - <<EOF
+   apiVersion: kagent.dev/v1alpha2
+   kind: Hook
+   metadata:
+     name: sample-hook
+     namespace: default
+   spec:
+     eventConfigurations:
+     - eventType: "pod-restart"
+       agentId: "pod-restart-agent"
+       prompt: "A pod has restarted. Please analyze the restart reason and provide recommendations."
+   EOF
+
+5. Check Hook status:
+   kubectl get hooks -A
+   kubectl describe hook sample-hook -n default

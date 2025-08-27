@@ -1,0 +1,83 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+  labels:
+    app.kubernetes.io/name: kagent-hook-controller
+    app.kubernetes.io/instance: controller-manager
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: kagent-hook-controller
+    app.kubernetes.io/part-of: kagent-hook-controller
+    app.kubernetes.io/managed-by: kustomize
+rules:
+# Hook CRD permissions
+- apiGroups:
+  - kagent.dev
+  resources:
+  - hooks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kagent.dev
+  resources:
+  - hooks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kagent.dev
+  resources:
+  - hooks/status
+  verbs:
+  - get
+  - patch
+  - update
+# Event watching permissions
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+# Event creation for audit trails
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+# Pod information for event context
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+# Node information for event context
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+# Namespace information
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
