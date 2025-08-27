@@ -11,48 +11,54 @@ This guide provides detailed instructions for installing and configuring the KAg
 
 ## Installation Methods
 
-### Method 1: Quick Install (Recommended)
+### Method 1: Helm Chart (Recommended)
 
-Install using the pre-built manifests:
+Install using the Helm chart from this repository:
 
 ```bash
-# Install CRDs, RBAC, and controller
-kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+# Clone the repository
+git clone https://github.com/antweiss/khook.git
+cd khook
+
+# Install with default values (namespace will be created)
+helm install kagent-hook-controller ./charts/kagent-hook-controller \
+  --namespace kagent-system \
+  --create-namespace \
+  --set kagent.apiToken="your-kagent-api-token"
+
+# Optional: customize API URL and other values
+helm install kagent-hook-controller ./charts/kagent-hook-controller \
+  --namespace kagent-system \
+  --create-namespace \
+  --set kagent.apiToken="your-kagent-api-token" \
+  --set kagent.apiUrl="https://api.kagent.dev"
 
 # Verify installation
 kubectl get pods -n kagent-system
 ```
 
-### Method 2: Helm Chart
+Chart location: charts/kagent-hook-controller (see repo tree).
 
-Install using Helm for more configuration options:
+#### One-liner install
 
 ```bash
-# Add the Kagent Helm repository
-helm repo add kagent https://charts.kagent.dev
-helm repo update
-
-# Install with default values
-helm install kagent-hook-controller kagent/kagent-hook-controller \
-  --namespace kagent-system \
-  --create-namespace
-
-# Or install with custom values
-helm install kagent-hook-controller kagent/kagent-hook-controller \
-  --namespace kagent-system \
-  --create-namespace \
-  --set kagent.apiKey=your-api-key \
-  --set kagent.baseUrl=https://api.kagent.dev
+TMP_DIR="$(mktemp -d)" && \
+  git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
+  helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
+    --namespace kagent-system \
+    --create-namespace \
+    --set kagent.apiToken="your-kagent-api-token" && \
+  rm -rf "$TMP_DIR"
 ```
 
-### Method 3: Manual Installation
+### Method 2: Manual Installation
 
 For custom deployments or development:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kagent-dev/kagent-hook-controller.git
-cd kagent-hook-controller
+git clone https://github.com/antweiss/khook.git
+cd khook
 
 # Install CRDs
 kubectl apply -f config/crd/bases/
@@ -312,8 +318,8 @@ kubectl set env deployment/kagent-hook-controller -n kagent-system LOG_LEVEL=deb
 ### Helm Upgrade
 
 ```bash
-helm repo update
-helm upgrade kagent-hook-controller kagent/kagent-hook-controller \
+# From the cloned repository root
+helm upgrade kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system
 ```
 
@@ -335,8 +341,8 @@ kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/l
 # Remove hooks (this will stop monitoring)
 kubectl delete hooks --all -A
 
-# Remove controller
-kubectl delete -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+# Remove controller installed via Helm
+helm uninstall kagent-hook-controller -n kagent-system
 
 # Remove CRDs (optional - this will delete all hook resources)
 kubectl delete crd hooks.kagent.dev

@@ -24,12 +24,28 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
 
 ### Installation
 
-1. **Install the CRD and Controller**:
+1. **Install via Helm (recommended)**:
    ```bash
-   kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+   git clone https://github.com/antweiss/khook.git
+   cd khook
+   helm install kagent-hook-controller ./charts/kagent-hook-controller \
+     --namespace kagent-system \
+     --create-namespace \
+     --set kagent.apiToken="your-kagent-api-token"
    ```
 
-2. **Configure Kagent API Access**:
+   One-liner (no checkout):
+   ```bash
+   TMP_DIR="$(mktemp -d)" && \
+     git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
+     helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
+       --namespace kagent-system \
+       --create-namespace \
+       --set kagent.apiToken="your-kagent-api-token" && \
+     rm -rf "$TMP_DIR"
+   ```
+
+2. **Configure Kagent API Access (if using Secrets directly)**:
    ```bash
    kubectl create secret generic kagent-credentials \
      --from-literal=api-key=your-kagent-api-key \

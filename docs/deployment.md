@@ -11,18 +11,34 @@ This guide covers different deployment methods for the Kagent Hook Controller.
 
 ## Deployment Methods
 
-### Method 1: Kustomize Deployment (Recommended)
+### Method 1: Helm Deployment (Recommended)
 
 This method uses Kubernetes native Kustomize for deployment.
 
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/kagent-dev/kagent-hook-controller.git
-cd kagent-hook-controller
+git clone https://github.com/antweiss/khook.git
+cd khook
 ```
 
-#### 2. Configure Kagent API Token
+#### 2. Install the Controller with Helm
+
+```bash
+helm install kagent-hook-controller ./charts/kagent-hook-controller \
+  --namespace kagent-system \
+  --create-namespace \
+  --set kagent.apiToken="your-kagent-api-token"
+```
+
+#### 3. Verify Deployment
+
+```bash
+helm status kagent-hook-controller -n kagent-system
+kubectl get pods -n kagent-system
+```
+
+### Method 2: Kustomize Deployment
 
 Edit the secret configuration:
 
@@ -53,28 +69,7 @@ kubectl get pods -n kagent-system
 kubectl logs -n kagent-system -l app.kubernetes.io/name=kagent-hook-controller
 ```
 
-### Method 2: Helm Deployment
-
-#### 1. Install Using Helm
-
-```bash
-# Clone repository
-git clone https://github.com/kagent-dev/kagent-hook-controller.git
-cd kagent-hook-controller
-
-# Install with Helm
-helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
-  --create-namespace \
-  --set kagent.apiToken="your-kagent-api-token"
-```
-
-#### 2. Verify Installation
-
-```bash
-helm status kagent-hook-controller -n kagent-system
-kubectl get pods -n kagent-system
-```
+### Method 3: Manual Deployment
 
 ### Method 3: Manual Deployment
 

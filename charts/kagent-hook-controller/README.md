@@ -10,20 +10,12 @@ This Helm chart deploys the Kagent Hook Controller, a Kubernetes controller that
 
 ## Installation
 
-### Add the Helm Repository
-
-```bash
-# If using a Helm repository (replace with actual repository URL)
-helm repo add kagent https://charts.kagent.dev
-helm repo update
-```
-
-### Install from Local Chart
+### Install from Local Chart (Repository Path)
 
 ```bash
 # Clone the repository and install from local chart
-git clone https://github.com/kagent-dev/kagent-hook-controller.git
-cd kagent-hook-controller
+git clone https://github.com/antweiss/khook.git
+cd khook
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
   --create-namespace \
