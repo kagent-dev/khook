@@ -1,5 +1,5 @@
 # Values for kagent-hook-crds
 crds:
   createNamespace: true
-  namespace: kagent-system
+  namespace: kagent
 

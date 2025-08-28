@@ -27,17 +27,17 @@ helm install kagent-hook-crds ./charts/kagent-hook-crds \
   
 # Install controller with default values
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
+  --namespace kagent \
   --create-namespace
 
 # Optional: customize API URL and other values
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
+  --namespace kagent \
   --create-namespace \
   --set kagent.apiUrl="https://api.kagent.dev"
 
 # Verify installation
-kubectl get pods -n kagent-system
+kubectl get pods -n kagent
 ```
 
 Chart location: charts/kagent-hook-controller (see repo tree).
@@ -48,10 +48,10 @@ Chart location: charts/kagent-hook-controller (see repo tree).
 TMP_DIR="$(mktemp -d)" && \
   git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
   helm install kagent-hook-crds "$TMP_DIR/khook/charts/kagent-hook-crds" \
-    --namespace kagent-system \
+    --namespace kagent \
     --create-namespace && \
   helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
-    --namespace kagent-system \
+    --namespace kagent \
     --create-namespace && \
   rm -rf "$TMP_DIR"
 ```

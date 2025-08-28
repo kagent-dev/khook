@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: controller-manager
-  namespace: kagent-system
+  namespace: kagent
   labels:
     app.kubernetes.io/name: kagent-hook-controller
     app.kubernetes.io/instance: controller-manager

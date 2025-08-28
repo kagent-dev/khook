@@ -94,7 +94,7 @@ affinity: {}
 # Namespace configuration
 namespace:
   create: true
-  name: "kagent-system"
+  name: "kagent"
 
 # CRD installation
 crds:

@@ -27,20 +27,20 @@ cd khook
 ```bash
 # Install CRDs first
 helm install kagent-hook-crds ./charts/kagent-hook-crds \
-  --namespace kagent-system \
+  --namespace kagent \
   --create-namespace \
 
 # Install controller
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
+  --namespace kagent \
   --create-namespace
 ```
 
 #### 3. Verify Deployment
 
 ```bash
-helm status kagent-hook-controller -n kagent-system
-kubectl get pods -n kagent-system
+helm status kagent-hook-controller -n kagent
+kubectl get pods -n kagent
 ```
 
 ### Method 2: Kustomize Deployment
@@ -70,8 +70,8 @@ make deploy
 #### 4. Verify Deployment
 
 ```bash
-kubectl get pods -n kagent-system
-kubectl logs -n kagent-system -l app.kubernetes.io/name=kagent-hook-controller
+kubectl get pods -n kagent
+kubectl logs -n kagent -l app.kubernetes.io/name=kagent-hook-controller
 ```
 
 ### Method 3: Manual Deployment
@@ -81,7 +81,7 @@ kubectl logs -n kagent-system -l app.kubernetes.io/name=kagent-hook-controller
 #### 1. Create Namespace
 
 ```bash
-kubectl create namespace kagent-system
+kubectl create namespace kagent
 ```
 
 #### 2. Install CRDs
@@ -222,7 +222,7 @@ git pull origin main
 
 # Upgrade release
 helm upgrade kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system
+  --namespace kagent
 ```
 
 ## Troubleshooting
@@ -248,18 +248,18 @@ helm upgrade kagent-hook-controller ./charts/kagent-hook-controller \
 
 ```bash
 # Check controller status
-kubectl get pods -n kagent-system
-kubectl describe pod <controller-pod> -n kagent-system
+kubectl get pods -n kagent
+kubectl describe pod <controller-pod> -n kagent
 
 # View logs
-kubectl logs -n kagent-system -l app.kubernetes.io/name=kagent-hook-controller -f
+kubectl logs -n kagent -l app.kubernetes.io/name=kagent-hook-controller -f
 
 # Check Hook resources
 kubectl get hooks -A
 kubectl describe hook <hook-name> -n <namespace>
 
 # Check events
-kubectl get events -n kagent-system --sort-by='.lastTimestamp'
+kubectl get events -n kagent --sort-by='.lastTimestamp'
 ```
 
 ## Uninstalling
@@ -274,8 +274,8 @@ make uninstall
 ### Helm Uninstall
 
 ```bash
-helm uninstall kagent-hook-controller -n kagent-system
-kubectl delete namespace kagent-system
+helm uninstall kagent-hook-controller -n kagent
+kubectl delete namespace kagent
 ```
 
 ### Manual Uninstall
