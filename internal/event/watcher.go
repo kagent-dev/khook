@@ -48,10 +48,12 @@ func (w *Watcher) Start(ctx context.Context) error {
 		FieldSelector: fieldSelector.String(),
 	}
 
+	w.logger.V(1).Info("Creating EventsV1 watcher", "fieldSelector", fieldSelector.String(), "namespace", w.namespace)
 	watcher, err := w.client.EventsV1().Events(w.namespace).Watch(ctx, watchlist)
 	if err != nil {
 		return fmt.Errorf("failed to create event watcher: %w", err)
 	}
+	w.logger.Info("EventsV1 watcher established", "namespace", w.namespace)
 
 	go func() {
 		defer watcher.Stop()
@@ -73,14 +75,38 @@ func (w *Watcher) Start(ctx context.Context) error {
 
 				if event.Type == watch.Added || event.Type == watch.Modified {
 					if k8sEvent, ok := event.Object.(*eventsv1.Event); ok {
+						w.logger.V(2).Info("Received Kubernetes event",
+							"watchType", event.Type,
+							"namespace", k8sEvent.Namespace,
+							"regarding.kind", k8sEvent.Regarding.Kind,
+							"regarding.name", k8sEvent.Regarding.Name,
+							"reason", k8sEvent.Reason,
+							"type", k8sEvent.Type,
+							"note", k8sEvent.Note,
+							"reportingController", k8sEvent.ReportingController)
 						if mappedEvent := w.mapKubernetesEvent(k8sEvent); mappedEvent != nil {
+							w.logger.Info("Discovered interesting event",
+								"eventType", mappedEvent.Type,
+								"resource", mappedEvent.ResourceName,
+								"reason", mappedEvent.Reason,
+								"namespace", mappedEvent.Namespace)
 							select {
 							case w.eventCh <- *mappedEvent:
+								w.logger.V(2).Info("Queued event for processing",
+									"eventType", mappedEvent.Type,
+									"resource", mappedEvent.ResourceName)
 							case <-ctx.Done():
 								return
 							case <-w.stopCh:
 								return
 							}
+						} else {
+							w.logger.V(3).Info("Ignoring event (no mapping)",
+								"namespace", k8sEvent.Namespace,
+								"regarding.kind", k8sEvent.Regarding.Kind,
+								"regarding.name", k8sEvent.Regarding.Name,
+								"reason", k8sEvent.Reason,
+								"type", k8sEvent.Type)
 						}
 					}
 				}
@@ -107,6 +133,7 @@ func (w *Watcher) WatchEvents(ctx context.Context, eventTypes []string) (<-chan 
 	// Create a filtered channel that only sends events matching the specified types
 	filteredCh := make(chan interfaces.Event, 100)
 
+	w.logger.Info("Starting filtered event stream", "watchTypes", eventTypes)
 	go func() {
 		defer close(filteredCh)
 
@@ -122,12 +149,22 @@ func (w *Watcher) WatchEvents(ctx context.Context, eventTypes []string) (<-chan 
 				// Check if this event type is in our watch list
 				for _, eventType := range eventTypes {
 					if event.Type == eventType {
+						w.logger.V(1).Info("Event matches filter",
+							"eventType", event.Type,
+							"resource", event.ResourceName,
+							"reason", event.Reason)
 						select {
 						case filteredCh <- event:
 						case <-ctx.Done():
 							return
 						}
 						break
+					} else {
+						w.logger.V(3).Info("Event does not match filter",
+							"wanted", eventType,
+							"got", event.Type,
+							"resource", event.ResourceName,
+							"reason", event.Reason)
 					}
 				}
 			}
@@ -152,6 +189,13 @@ func (w *Watcher) mapKubernetesEvent(k8sEvent *eventsv1.Event) *interfaces.Event
 	eventType := w.mapEventType(k8sEvent)
 	if eventType == "" {
 		// This event type is not one we're interested in
+		w.logger.V(3).Info("Event not mapped to internal type",
+			"namespace", k8sEvent.Namespace,
+			"regarding.kind", k8sEvent.Regarding.Kind,
+			"regarding.name", k8sEvent.Regarding.Name,
+			"reason", k8sEvent.Reason,
+			"type", k8sEvent.Type,
+			"note", k8sEvent.Note)
 		return nil
 	}
 
@@ -189,7 +233,8 @@ func (w *Watcher) mapKubernetesEvent(k8sEvent *eventsv1.Event) *interfaces.Event
 		"eventType", event.Type,
 		"resource", event.ResourceName,
 		"reason", event.Reason,
-		"type", k8sEvent.Type)
+		"type", k8sEvent.Type,
+		"note", k8sEvent.Note)
 
 	return event
 }

@@ -14,7 +14,7 @@ spec:
   eventConfigurations:
   # Monitor pod restarts
   - eventType: pod-restart
-    agentId: pod-restart-analyzer
+    agentId: k8s-agent
     prompt: |
       A pod named {{.ResourceName}} has restarted at {{.EventTime}} in namespace {{.Namespace}}.
       
@@ -37,7 +37,7 @@ spec:
 
   # Monitor OOM kills
   - eventType: oom-kill
-    agentId: memory-optimizer
+    agentId: k8s-agent
     prompt: |
       Pod {{.ResourceName}} was killed due to out-of-memory (OOM) at {{.EventTime}} in namespace {{.Namespace}}.
       

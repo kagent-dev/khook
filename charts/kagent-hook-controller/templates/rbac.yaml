@@ -44,6 +44,15 @@ rules:
   - watch
   - create
   - patch
+# Events API v1 (events.k8s.io)
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
 # Pod information for event context
 - apiGroups:
   - ""

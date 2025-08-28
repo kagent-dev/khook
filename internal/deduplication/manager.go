@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kagent/hook-controller/internal/interfaces"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -41,12 +42,14 @@ func (m *Manager) eventKey(event interfaces.Event) string {
 
 // ShouldProcessEvent determines if an event should be processed based on deduplication logic
 func (m *Manager) ShouldProcessEvent(hookName string, event interfaces.Event) bool {
+	logger := log.Log.WithName("dedup").WithValues("hook", hookName, "eventType", event.Type, "resource", event.ResourceName)
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
 	hookEventMap, exists := m.hookEvents[hookName]
 	if !exists {
 		// No events for this hook, should process
+		logger.V(1).Info("No existing events for hook; will process")
 		return true
 	}
 
@@ -54,21 +57,25 @@ func (m *Manager) ShouldProcessEvent(hookName string, event interfaces.Event) bo
 	activeEvent, exists := hookEventMap[key]
 	if !exists {
 		// Event doesn't exist, should process
+		logger.V(1).Info("First occurrence of event; will process")
 		return true
 	}
 
 	// Check if event has expired (more than 10 minutes old)
 	if time.Since(activeEvent.FirstSeen) > EventTimeoutDuration {
 		// Event has expired, should process as new event
+		logger.V(1).Info("Event expired; will process as new", "firstSeen", activeEvent.FirstSeen)
 		return true
 	}
 
 	// Event is still active within timeout window, should not process
+	logger.V(2).Info("Duplicate within timeout; will ignore", "firstSeen", activeEvent.FirstSeen)
 	return false
 }
 
 // RecordEvent records an event in the deduplication storage
 func (m *Manager) RecordEvent(hookName string, event interfaces.Event) error {
+	logger := log.Log.WithName("dedup").WithValues("hook", hookName, "eventType", event.Type, "resource", event.ResourceName)
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -85,6 +92,7 @@ func (m *Manager) RecordEvent(hookName string, event interfaces.Event) error {
 		// Update existing event
 		existingEvent.LastSeen = now
 		existingEvent.Status = StatusFiring
+		logger.V(1).Info("Updated existing active event", "lastSeen", existingEvent.LastSeen)
 	} else {
 		// Create new event record
 		m.hookEvents[hookName][key] = &interfaces.ActiveEvent{
@@ -94,6 +102,7 @@ func (m *Manager) RecordEvent(hookName string, event interfaces.Event) error {
 			LastSeen:     now,
 			Status:       StatusFiring,
 		}
+		logger.Info("Recorded new active event", "firstSeen", now)
 	}
 
 	return nil
