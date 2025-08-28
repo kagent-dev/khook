@@ -68,12 +68,6 @@ spec:
               name: manager-config
               key: kagent-api-url
               optional: true
-        - name: KAGENT_API_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: kagent-credentials
-              key: api-token
-              optional: true
         - name: LOG_LEVEL
           valueFrom:
             configMapKeyRef:

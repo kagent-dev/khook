@@ -19,8 +19,7 @@ Install the controller after CRDs are installed:
 ```bash
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
-  --create-namespace \
-  --set kagent.apiToken="your-kagent-api-token"
+  --create-namespace
 ```
 
 ## Uninstall

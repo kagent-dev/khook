@@ -19,7 +19,7 @@ cd khook
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
   --create-namespace \
-  --set kagent.apiToken="your-kagent-api-token"
+  # no API token required
 ```
 
 ### Install with Custom Values
@@ -42,7 +42,7 @@ The following table lists the configurable parameters and their default values:
 | `image.tag` | Controller image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `kagent.apiUrl` | Kagent API URL | `https://api.kagent.dev` |
-| `kagent.apiToken` | Kagent API token (required) | `""` |
+| `kagent.apiToken` | (removed) No token required | - |
 | `kagent.timeout` | API request timeout | `30s` |
 | `kagent.retryAttempts` | Number of retry attempts | `3` |
 | `controller.logLevel` | Log level (debug, info, warn, error) | `info` |
@@ -65,8 +65,7 @@ The following table lists the configurable parameters and their default values:
 ### Basic Installation
 
 ```bash
-helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --set kagent.apiToken="your-api-token"
+helm install kagent-hook-controller ./charts/kagent-hook-controller
 ```
 
 ### Production Installation with Monitoring
@@ -97,7 +96,6 @@ metrics:
       release: prometheus
 
 kagent:
-  apiToken: "your-production-api-token"
   timeout: "60s"
   retryAttempts: 5
 

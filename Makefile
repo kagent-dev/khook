@@ -121,8 +121,7 @@ helm-template: ## Generate Helm templates.
 helm-install: ## Install Helm chart.
 	helm install kagent-hook-controller charts/kagent-hook-controller \
 		--namespace kagent-system \
-		--create-namespace \
-		--set kagent.apiToken="$(KAGENT_API_TOKEN)"
+		--create-namespace
 
 .PHONY: helm-upgrade
 helm-upgrade: ## Upgrade Helm chart.

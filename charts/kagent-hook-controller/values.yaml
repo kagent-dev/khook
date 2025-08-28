@@ -13,7 +13,6 @@ fullnameOverride: ""
 # Kagent API configuration
 kagent:
   apiUrl: "https://api.kagent.dev"
-  apiToken: ""
   timeout: "30s"
   retryAttempts: 3
   retryBackoff: "1s"

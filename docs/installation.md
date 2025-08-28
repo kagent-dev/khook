@@ -28,14 +28,12 @@ helm install kagent-hook-crds ./charts/kagent-hook-crds \
 # Install controller with default values
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
-  --create-namespace \
-  --set kagent.apiToken="your-kagent-api-token"
+  --create-namespace
 
 # Optional: customize API URL and other values
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
   --create-namespace \
-  --set kagent.apiToken="your-kagent-api-token" \
   --set kagent.apiUrl="https://api.kagent.dev"
 
 # Verify installation
@@ -54,8 +52,7 @@ TMP_DIR="$(mktemp -d)" && \
     --create-namespace && \
   helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
     --namespace kagent-system \
-    --create-namespace \
-    --set kagent.apiToken="your-kagent-api-token" && \
+    --create-namespace && \
   rm -rf "$TMP_DIR"
 ```
 

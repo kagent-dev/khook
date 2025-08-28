@@ -35,8 +35,7 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
    # Install controller
    helm install kagent-hook-controller ./charts/kagent-hook-controller \
      --namespace kagent-system \
-     --create-namespace \
-     --set kagent.apiToken="your-kagent-api-token"
+     --create-namespace
    ```
 
    One-liner (no checkout):
@@ -48,8 +47,7 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
        --create-namespace && \
      helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
        --namespace kagent-system \
-       --create-namespace \
-       --set kagent.apiToken="your-kagent-api-token" && \
+       --create-namespace && \
      rm -rf "$TMP_DIR"
    ```
 

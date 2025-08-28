@@ -43,13 +43,6 @@ spec:
             configMapKeyRef:
               name: {{ include "kagent-hook-controller.fullname" . }}-config
               key: kagent-api-url
-        {{- if .Values.kagent.apiToken }}
-        - name: KAGENT_API_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "kagent-hook-controller.fullname" . }}-credentials
-              key: api-token
-        {{- end }}
         - name: LOG_LEVEL
           valueFrom:
             configMapKeyRef:

@@ -33,8 +33,7 @@ helm install kagent-hook-crds ./charts/kagent-hook-crds \
 # Install controller
 helm install kagent-hook-controller ./charts/kagent-hook-controller \
   --namespace kagent-system \
-  --create-namespace \
-  --set kagent.apiToken="your-kagent-api-token"
+  --create-namespace
 ```
 
 #### 3. Verify Deployment
@@ -124,7 +123,7 @@ The controller supports the following environment variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `KAGENT_API_URL` | Kagent API endpoint | `https://api.kagent.dev` |
-| `KAGENT_API_TOKEN` | Kagent API authentication token | Required |
+| `KAGENT_API_TOKEN` | (removed) Not used | - |
 | `LOG_LEVEL` | Logging level (debug, info, warn, error) | `info` |
 | `METRICS_BIND_ADDRESS` | Metrics server bind address | `:8080` |
 | `HEALTH_PROBE_BIND_ADDRESS` | Health probe bind address | `:8081` |
