@@ -25,10 +25,12 @@ cd khook
 #### 2. Install the Controller with Helm
 
 ```bash
+# Create namespace (recommended to pre-create to avoid Helm ownership issues)
+kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
 # Install CRDs first
 helm install kagent-hook-crds ./charts/kagent-hook-crds \
   --namespace kagent \
-  --create-namespace \
 
 # Install controller
 helm install kagent-hook-controller ./charts/kagent-hook-controller \

@@ -20,10 +20,12 @@ Install using the Helm charts from this repository (install CRDs first, then con
 git clone https://github.com/antweiss/khook.git
 cd khook
 
+# Create namespace (recommended to pre-create to avoid Helm ownership issues)
+kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
+
 # Install CRDs
 helm install kagent-hook-crds ./charts/kagent-hook-crds \
-  --namespace kagent-system \
-  --create-namespace \
+  --namespace kagent \
   
 # Install controller with default values
 helm install kagent-hook-controller ./charts/kagent-hook-controller \

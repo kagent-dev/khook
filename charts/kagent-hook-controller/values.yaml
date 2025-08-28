@@ -93,7 +93,7 @@ affinity: {}
 
 # Namespace configuration
 namespace:
-  create: true
+  create: false
   name: "kagent"
 
 # CRD installation

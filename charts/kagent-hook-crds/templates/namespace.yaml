@@ -2,6 +2,6 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ .Values.crds.namespace | default "kagent-system" }}
+  name: {{ .Values.crds.namespace | default "kagent" }}
 {{- end }}
 
