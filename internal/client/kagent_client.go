@@ -9,6 +9,8 @@ import (
 	"github.com/kagent-dev/kagent/go/pkg/client"
 	"github.com/kagent-dev/kagent/go/pkg/client/api"
 	"github.com/kagent/hook-controller/internal/interfaces"
+	a2aclient "trpc.group/trpc-go/trpc-a2a-go/client"
+	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
 
 // Config holds the configuration for the Kagent API client
@@ -23,7 +25,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		BaseURL: "http://kagent-controller.kagent.svc.local:8083",
 		UserID:  "admin@kagent.dev",
-		Timeout: 30 * time.Second,
+		Timeout: 120 * time.Second,
 	}
 }
 
@@ -103,14 +105,67 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 		"sessionId", sessionResp.Data.ID,
 		"sessionName", sessionNameStr)
 
-	// For now, we'll return a success response since the session was created
-	// In a full implementation, we might want to create a run within the session
-	// and wait for completion, but that would require understanding the run API better
+	// Compose message from prompt and event context
+	text := request.Prompt
+	if request.Context != nil {
+		if ns, ok := request.Context["namespace"].(string); ok && ns != "" {
+			text += fmt.Sprintf("\nNamespace: %s", ns)
+		}
+		if reason, ok := request.Context["reason"].(string); ok && reason != "" {
+			text += fmt.Sprintf("\nReason: %s", reason)
+		}
+		if msg, ok := request.Context["message"].(string); ok && msg != "" {
+			text += fmt.Sprintf("\nMessage: %s", msg)
+		}
+	}
+
+	// Use A2A SendMessage (POST). Provide a clean base URL with trailing slash; no query params.
+	a2aURL := fmt.Sprintf("%s/api/a2a/%s/", c.config.BaseURL, request.AgentId)
+	a2a, err := a2aclient.NewA2AClient(a2aURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create A2A client: %w", err)
+	}
+
+	sendCtx, cancel := context.WithTimeout(ctx, c.config.Timeout)
+	defer cancel()
+
+	sessionID := sessionResp.Data.ID
+
+	// Retry SendMessage with exponential backoff
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		_, lastErr = a2a.SendMessage(sendCtx, protocol.SendMessageParams{
+			Message: protocol.Message{
+				Role:      protocol.MessageRoleUser,
+				ContextID: &sessionID,
+				Parts:     []protocol.Part{protocol.NewTextPart(text)},
+			},
+		})
+		if lastErr == nil {
+			break
+		}
+		delay := time.Duration(1<<attempt) * time.Second
+		c.logger.V(1).Info("A2A SendMessage failed, will retry",
+			"attempt", attempt+1,
+			"delay", delay,
+			"error", lastErr.Error())
+		time.Sleep(delay)
+	}
+	if lastErr != nil {
+		c.logger.Error(lastErr, "Failed to send message to agent",
+			"agentId", request.AgentId,
+			"sessionId", sessionResp.Data.ID)
+		return nil, fmt.Errorf("failed to send A2A message after retries: %w", lastErr)
+	}
+
+	c.logger.Info("Agent accepted message via A2A",
+		"agentId", request.AgentId,
+		"sessionId", sessionID)
 
 	response := &interfaces.AgentResponse{
 		Success:   true,
 		Message:   fmt.Sprintf("Session created successfully: %s", sessionNameStr),
-		RequestId: sessionResp.Data.ID,
+		RequestId: sessionID,
 	}
 
 	c.logger.Info("Agent call completed successfully",

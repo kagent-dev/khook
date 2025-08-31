@@ -197,6 +197,8 @@ func (p *Processor) expandPromptTemplate(template string, event interfaces.Event
 		"{{.Reason}}":       event.Reason,
 		"{{.Message}}":      event.Message,
 		"{{.Timestamp}}":    event.Timestamp.Format(time.RFC3339),
+		"{{.EventTime}}":    event.Timestamp.Format(time.RFC3339),
+		"{{.EventMessage}}": event.Message,
 	}
 
 	for placeholder, value := range replacements {

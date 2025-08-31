@@ -12,7 +12,7 @@ fullnameOverride: ""
 
 # Kagent API configuration
 kagent:
-  apiUrl: "http://kagent-controller.kagent.svc.local:8083"
+  apiUrl: "http://kagent-controller.kagent.svc.cluster.local:8083"
   timeout: "30s"
   retryAttempts: 3
   retryBackoff: "1s"

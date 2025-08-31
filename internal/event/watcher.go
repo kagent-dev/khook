@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	eventsv1 "k8s.io/api/events/v1"
@@ -83,7 +84,31 @@ func (w *Watcher) Start(ctx context.Context) error {
 							"reason", k8sEvent.Reason,
 							"type", k8sEvent.Type,
 							"note", k8sEvent.Note,
-							"reportingController", k8sEvent.ReportingController)
+							"series.count", func() int32 {
+								if k8sEvent.Series != nil {
+									return k8sEvent.Series.Count
+								}
+								return 0
+							}())
+
+						// Staleness filter: ignore events older than 15 minutes without recent occurrence
+						cutoff := time.Now().Add(-15 * time.Minute)
+						lastTime := k8sEvent.CreationTimestamp.Time
+						if !k8sEvent.EventTime.IsZero() {
+							lastTime = k8sEvent.EventTime.Time
+						}
+						if k8sEvent.Series != nil && !k8sEvent.Series.LastObservedTime.IsZero() {
+							lastTime = k8sEvent.Series.LastObservedTime.Time
+						}
+						if lastTime.Before(cutoff) {
+							w.logger.V(1).Info("Ignoring stale event (>15m)",
+								"namespace", k8sEvent.Namespace,
+								"regarding.name", k8sEvent.Regarding.Name,
+								"reason", k8sEvent.Reason,
+								"lastTime", lastTime)
+							continue
+						}
+
 						if mappedEvent := w.mapKubernetesEvent(k8sEvent); mappedEvent != nil {
 							w.logger.Info("Discovered interesting event",
 								"eventType", mappedEvent.Type,
