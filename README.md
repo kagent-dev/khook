@@ -14,6 +14,41 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
 - **Status Tracking**: Provides real-time status updates and audit trails through Kubernetes events
 - **High Availability**: Supports leader election for production deployments
 
+## Flow: Kubernetes Event to Kagent Task
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant K8s as Kubernetes API Server
+  participant HC as Hook Controller
+  participant Dedup as Dedup Manager
+  participant SM as Status Manager
+  participant KC as Kagent Controller (API)
+  participant Agent as K8s Agent
+
+  K8s->>HC: Event (e.g., BackOff, OOMKill)
+  HC->>HC: Map, filter, stale check (15m)
+  HC->>Dedup: ShouldProcessEvent(hook,event)
+  alt not duplicate
+    Dedup-->>HC: true
+    HC->>SM: RecordEventFiring
+    HC->>KC: POST /api/sessions (user_id)
+    KC-->>HC: 201 Session (contextId)
+    HC->>KC: A2A SendMessage(contextId, prompt+context)
+    KC-->>Agent: Dispatch message
+    Agent-->>KC: Create Task (taskId)
+    KC-->>HC: 200 OK
+    HC->>Dedup: MarkNotified(hook,event)
+    Note over HC,Dedup: Suppress repeats for 10 minutes
+    HC->>SM: RecordAgentCallSuccess(requestId)
+  else duplicate/within 10m
+    Dedup-->>HC: false
+    HC->>SM: RecordDuplicateEvent
+  end
+```
+
+For how agents respond with either a Message or a Task in A2A, see “Life of a Task” in the A2A protocol docs: https://a2a-protocol.org/latest/topics/life-of-a-task/
+
 ## Quick Start
 
 ### Prerequisites
