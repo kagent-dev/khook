@@ -152,6 +152,9 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 		// Continue even if status recording fails
 	}
 
+	// Mark event as notified to suppress re-sending within suppression window
+	p.deduplicationManager.MarkNotified(hookName, match.Event)
+
 	p.logger.Info("Successfully processed event match",
 		"hook", hookName,
 		"eventType", match.Event.Type,

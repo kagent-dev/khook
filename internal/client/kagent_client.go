@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -130,37 +131,38 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 	defer cancel()
 
 	sessionID := sessionResp.Data.ID
-
-	// Retry SendMessage with exponential backoff
-	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		_, lastErr = a2a.SendMessage(sendCtx, protocol.SendMessageParams{
-			Message: protocol.Message{
-				Role:      protocol.MessageRoleUser,
-				ContextID: &sessionID,
-				Parts:     []protocol.Part{protocol.NewTextPart(text)},
-			},
-		})
-		if lastErr == nil {
-			break
-		}
-		delay := time.Duration(1<<attempt) * time.Second
-		c.logger.V(1).Info("A2A SendMessage failed, will retry",
-			"attempt", attempt+1,
-			"delay", delay,
-			"error", lastErr.Error())
-		time.Sleep(delay)
-	}
-	if lastErr != nil {
-		c.logger.Error(lastErr, "Failed to send message to agent",
+	res, err := a2a.SendMessage(sendCtx, protocol.SendMessageParams{
+		Message: protocol.Message{
+			Role:      protocol.MessageRoleUser,
+			ContextID: &sessionID,
+			Parts:     []protocol.Part{protocol.NewTextPart(text)},
+		},
+	})
+	if err != nil {
+		c.logger.Error(err, "Failed to send message to agent",
 			"agentId", request.AgentId,
 			"sessionId", sessionResp.Data.ID)
-		return nil, fmt.Errorf("failed to send A2A message after retries: %w", lastErr)
+		return nil, fmt.Errorf("failed to send A2A message: %w", err)
+	}
+
+	// Best-effort check whether a Task was returned (per A2A Life of a Task)
+	isTask := false
+	if res != nil {
+		rv := reflect.ValueOf(res)
+		if rv.Kind() == reflect.Ptr {
+			rv = rv.Elem()
+		}
+		if rv.IsValid() {
+			if f := rv.FieldByName("Task"); f.IsValid() && !f.IsZero() {
+				isTask = true
+			}
+		}
 	}
 
 	c.logger.Info("Agent accepted message via A2A",
 		"agentId", request.AgentId,
-		"sessionId", sessionID)
+		"sessionId", sessionID,
+		"taskReturned", isTask)
 
 	response := &interfaces.AgentResponse{
 		Success:   true,

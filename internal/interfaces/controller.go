@@ -67,11 +67,13 @@ type KagentClient interface {
 
 // ActiveEvent represents an event that is currently being tracked
 type ActiveEvent struct {
-	EventType    string    `json:"eventType"`
-	ResourceName string    `json:"resourceName"`
-	FirstSeen    time.Time `json:"firstSeen"`
-	LastSeen     time.Time `json:"lastSeen"`
-	Status       string    `json:"status"`
+	EventType      string     `json:"eventType"`
+	ResourceName   string     `json:"resourceName"`
+	FirstSeen      time.Time  `json:"firstSeen"`
+	LastSeen       time.Time  `json:"lastSeen"`
+	Status         string     `json:"status"`
+	NotifiedAt     *time.Time `json:"notifiedAt,omitempty"`
+	LastNotifiedAt *time.Time `json:"lastNotifiedAt,omitempty"`
 }
 
 // DeduplicationManager implements event deduplication logic with timeout
@@ -80,6 +82,7 @@ type DeduplicationManager interface {
 	RecordEvent(hookName string, event Event) error
 	CleanupExpiredEvents(hookName string) error
 	GetActiveEvents(hookName string) []ActiveEvent
+	MarkNotified(hookName string, event Event)
 }
 
 // StatusManager handles status updates and event recording for Hook resources

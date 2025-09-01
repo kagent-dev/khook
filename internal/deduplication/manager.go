@@ -12,6 +12,8 @@ import (
 const (
 	// EventTimeoutDuration is the duration after which events are considered resolved
 	EventTimeoutDuration = 10 * time.Minute
+	// NotificationSuppressionDuration is the window to suppress re-sending after success
+	NotificationSuppressionDuration = 10 * time.Minute
 
 	// StatusFiring indicates an event is currently active
 	StatusFiring = "firing"
@@ -61,6 +63,13 @@ func (m *Manager) ShouldProcessEvent(hookName string, event interfaces.Event) bo
 		return true
 	}
 
+	// Suppress if we recently notified and within suppression window
+	if activeEvent.LastNotifiedAt != nil && time.Since(*activeEvent.LastNotifiedAt) < NotificationSuppressionDuration {
+		logger.V(1).Info("Within notification suppression window; will ignore",
+			"lastNotifiedAt", *activeEvent.LastNotifiedAt)
+		return false
+	}
+
 	// Check if event has expired (more than 10 minutes old)
 	if time.Since(activeEvent.FirstSeen) > EventTimeoutDuration {
 		// Event has expired, should process as new event
@@ -106,6 +115,33 @@ func (m *Manager) RecordEvent(hookName string, event interfaces.Event) error {
 	}
 
 	return nil
+}
+
+// MarkNotified marks that we successfully notified the agent for this event now
+func (m *Manager) MarkNotified(hookName string, event interfaces.Event) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if m.hookEvents[hookName] == nil {
+		m.hookEvents[hookName] = make(map[string]*interfaces.ActiveEvent)
+	}
+	key := m.eventKey(event)
+	now := time.Now()
+	if ae, ok := m.hookEvents[hookName][key]; ok {
+		ae.LastNotifiedAt = &now
+		if ae.NotifiedAt == nil {
+			ae.NotifiedAt = &now
+		}
+	} else {
+		m.hookEvents[hookName][key] = &interfaces.ActiveEvent{
+			EventType:      event.Type,
+			ResourceName:   event.ResourceName,
+			FirstSeen:      now,
+			LastSeen:       now,
+			Status:         StatusFiring,
+			NotifiedAt:     &now,
+			LastNotifiedAt: &now,
+		}
+	}
 }
 
 // CleanupExpiredEvents removes events that have exceeded the timeout duration

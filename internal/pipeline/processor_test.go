@@ -63,6 +63,10 @@ func (m *MockDeduplicationManager) GetActiveEvents(hookName string) []interfaces
 	return args.Get(0).([]interfaces.ActiveEvent)
 }
 
+func (m *MockDeduplicationManager) MarkNotified(hookName string, event interfaces.Event) {
+	m.Called(hookName, event)
+}
+
 type MockKagentClient struct {
 	mock.Mock
 }
