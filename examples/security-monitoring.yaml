@@ -14,7 +14,7 @@ spec:
   eventConfigurations:
   # Monitor unexpected pod restarts that could indicate security issues
   - eventType: pod-restart
-    agentId: security-analyst
+    agentId: kagent/security-analyst
     prompt: |
       AUTONOMOUS MODE: SECURITY ALERT - Pod {{.ResourceName}} restarted at {{.EventTime}}. Security analysis required.
 
@@ -30,7 +30,7 @@ spec:
 
   # Monitor probe failures that could indicate tampering
   - eventType: probe-failed
-    agentId: security-analyst
+    agentId: kagent/security-analyst
     prompt: |
       AUTONOMOUS MODE: SECURITY ALERT - Health probe failed for {{.ResourceName}} at {{.EventTime}}. Security implications.
 

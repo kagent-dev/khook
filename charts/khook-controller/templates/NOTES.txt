@@ -19,7 +19,7 @@
    spec:
      eventConfigurations:
      - eventType: "pod-restart"
-       agentId: "pod-restart-agent"
+       agentId: "kagent/pod-restart-agent"
        prompt: |
          AUTONOMOUS MODE: A pod has restarted. Analyze the cause and implement fixes immediately.
 

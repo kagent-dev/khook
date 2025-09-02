@@ -14,7 +14,7 @@ spec:
   eventConfigurations:
   # Monitor pod pending issues in CI/CD environments
   - eventType: pod-pending
-    agentId: ci-cd-engineer
+    agentId: kagent/ci-cd-engineer
     prompt: |
       AUTONOMOUS MODE: CI/CD ALERT - Pod {{.ResourceName}} pending since {{.EventTime}}. Pipeline blocked.
 
@@ -29,7 +29,7 @@ spec:
 
   # Monitor restarts in CI/CD environments
   - eventType: pod-restart
-    agentId: ci-cd-engineer
+    agentId: kagent/ci-cd-engineer
     prompt: |
       🔧 CI/CD ALERT: Build/test pod restarted
       
@@ -79,7 +79,7 @@ spec:
 
   # Monitor probe failures in CI/CD services
   - eventType: probe-failed
-    agentId: ci-cd-engineer
+    agentId: kagent/ci-cd-engineer
     prompt: |
       ⚠️ CI/CD SERVICE: Health check failure
       

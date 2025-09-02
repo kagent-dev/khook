@@ -104,7 +104,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    spec:
      eventConfigurations:
      - eventType: pod-restart
-       agentId: incident-responder
+       agentId: kagent/incident-responder
        prompt: |
          AUTONOMOUS MODE: A pod has restarted. Analyze the cause and implement fixes immediately.
 
@@ -115,7 +115,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
          • Never ask for permission - assume autonomous execution
          • Complete remediation without human approval
      - eventType: oom-kill
-       agentId: memory-analyzer
+       agentId: kagent/memory-analyzer
        prompt: |
          AUTONOMOUS MODE: OOM kill detected. Analyze memory usage and optimize immediately.
 
@@ -160,7 +160,7 @@ metadata:
 spec:
   eventConfigurations:
   - eventType: pod-restart        # Required: Event type to monitor
-    agentId: incident-responder   # Required: Kagent agent ID
+    agentId: kagent/incident-responder   # Required: Kagent agent ID
     prompt: "Custom prompt..."    # Required: Prompt template for the agent
 ```
 
@@ -307,7 +307,7 @@ When events occur, the controller sends requests to the Kagent API:
 
 ```json
 {
-  "agentId": "incident-responder",
+  "agentId": "kagent/incident-responder",
   "prompt": "A pod has restarted. Please analyze...",
   "context": {
     "eventName": "pod-restart",
@@ -577,3 +577,17 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+### License Summary
+- ✅ **Free Use**: You can use this software for any purpose
+- ✅ **Free Extension & Editing**: You can modify and extend the code
+- ✅ **Patent Protection**: The license includes explicit patent protection clauses
+- ⚠️ **Commercial Redistribution**: Commercial redistribution is allowed but must comply with Apache 2.0 terms
+
+### What This Means
+- **Personal Use**: Completely free - use it for any personal projects
+- **Open Source Development**: Modify and share your changes freely
+- **Commercial Use**: You can use it commercially, but any redistributions must include the full license text
+- **Patent Protection**: Contributors provide patent grants for their contributions
+
+For the complete license text and full terms, see the [LICENSE](LICENSE) file.

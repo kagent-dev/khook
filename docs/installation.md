@@ -162,7 +162,7 @@ metadata:
 spec:
   eventConfigurations:
   - eventType: pod-restart
-    agentId: test-agent
+    agentId: kagent/test-agent
     prompt: "Test hook is working"
 EOF
 ```

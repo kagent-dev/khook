@@ -14,7 +14,7 @@ spec:
   eventConfigurations:
   # Monitor OOM kills for performance optimization
   - eventType: oom-kill
-    agentId: performance-optimizer
+    agentId: kagent/performance-optimizer
     prompt: |
       AUTONOMOUS MODE: PERFORMANCE ALERT - OOM kill for {{.ResourceName}} at {{.EventTime}}. Optimize immediately.
 
@@ -29,7 +29,7 @@ spec:
 
   # Monitor pod pending for resource allocation issues
   - eventType: pod-pending
-    agentId: capacity-planner
+    agentId: kagent/capacity-planner
     prompt: |
       AUTONOMOUS MODE: CAPACITY ALERT - Pod {{.ResourceName}} pending since {{.EventTime}}. Resolve scheduling issue.
 
@@ -44,7 +44,7 @@ spec:
 
   # Monitor restarts for performance degradation patterns
   - eventType: pod-restart
-    agentId: reliability-engineer
+    agentId: kagent/reliability-engineer
     prompt: |
       AUTONOMOUS MODE: RELIABILITY ALERT - Pod {{.ResourceName}} restarted at {{.EventTime}}. Performance analysis required.
 

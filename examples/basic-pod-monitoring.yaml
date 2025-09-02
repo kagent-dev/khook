@@ -14,7 +14,7 @@ spec:
   eventConfigurations:
   # Monitor pod restarts
   - eventType: pod-restart
-    agentId: k8s-agent
+    agentId: kagent/k8s-agent
     prompt: |
       AUTONOMOUS MODE: Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
 
@@ -28,7 +28,7 @@ spec:
 
   # Monitor OOM kills
   - eventType: oom-kill
-    agentId: k8s-agent
+    agentId: kagent/k8s-agent
     prompt: |
       AUTONOMOUS MODE: OOM kill for {{.ResourceName}} at {{.EventTime}}. Analyze memory and optimize immediately.
 

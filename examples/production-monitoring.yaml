@@ -15,7 +15,7 @@ spec:
   eventConfigurations:
   # Critical: Pod restarts in production
   - eventType: pod-restart
-    agentId: incident-manager
+    agentId: kagent/incident-manager
     prompt: |
       🚨 PRODUCTION ALERT: Pod restart detected
       
@@ -58,7 +58,7 @@ spec:
 
   # Pod stuck in pending state
   - eventType: pod-pending
-    agentId: scheduling-analyzer
+    agentId: kagent/scheduling-analyzer
     prompt: |
       ⚠️ PRODUCTION ISSUE: Pod scheduling problem
       
@@ -99,7 +99,7 @@ spec:
 
   # Health probe failures
   - eventType: probe-failed
-    agentId: health-checker
+    agentId: kagent/health-checker
     prompt: |
       🔍 PRODUCTION HEALTH ISSUE: Probe failure detected
       
@@ -141,7 +141,7 @@ spec:
 
   # Critical: OOM kills in production
   - eventType: oom-kill
-    agentId: capacity-planner
+    agentId: kagent/capacity-planner
     prompt: |
       🚨 CRITICAL PRODUCTION ISSUE: OOM Kill Event
       
