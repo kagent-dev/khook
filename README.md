@@ -1,5 +1,3 @@
-# khook
-
 <p align="center">
  <img src="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
 </p>
