@@ -2,35 +2,39 @@
 
 ## Overview
 
-The KAgent Hook Controller is a Kubernetes controller that implements the standard controller pattern to watch for Kubernetes events and trigger Kagent agents based on configurable hook definitions. The controller uses a Custom Resource Definition (CRD) to define hook configurations and maintains event state to implement deduplication logic.
+The KHook Controller is a Kubernetes controller that monitors Kubernetes events and triggers autonomous remediation through Kagent agents based on configurable hook definitions. The controller uses a Custom Resource Definition (CRD) to define hook configurations and implements sophisticated deduplication logic with race condition protection.
 
 ## Architecture
 
-The system follows the standard Kubernetes controller architecture with the following key components:
+The system implements a modern service-oriented architecture with the following key components:
 
 ```mermaid
 graph TB
-    A[Hook CRD] --> B[Controller Manager]
-    B --> C[Event Watcher]
-    B --> D[Hook Reconciler]
-    C --> E[Event Filter]
-    E --> F[Deduplication Logic]
-    F --> G[Kagent API Client]
-    G --> H[Kagent Platform]
-    D --> I[Status Manager]
-    I --> J[Hook Status Updates]
+    A[Hook CRD] --> B[Workflow Coordinator]
+    B --> C[Hook Discovery Service]
+    B --> D[Workflow Manager]
+    D --> E[Event Watcher]
+    D --> F[Deduplication Manager]
+    D --> G[Status Manager]
+    F --> H[Kagent API Client]
+    H --> I[Kagent Platform]
+    E --> J[Event Processing Pipeline]
+    J --> K[Template Engine]
+    K --> L[Autonomous Remediation]
 ```
 
 ### Core Components
 
-1. **Hook Custom Resource**: Defines the hook configuration schema
-2. **Controller Manager**: Orchestrates the controller lifecycle and watches
-3. **Event Watcher**: Monitors Kubernetes events using the Events API
-4. **Hook Reconciler**: Manages hook object lifecycle and configuration
-5. **Event Filter**: Matches incoming events against hook configurations
-6. **Deduplication Logic**: Implements 10-minute timeout logic for event suppression
-7. **Kagent API Client**: Handles communication with the Kagent platform
-8. **Status Manager**: Updates hook object status with event information
+1. **Hook Custom Resource**: Defines the hook configuration schema with validation
+2. **Workflow Coordinator**: Orchestrates the complete event processing lifecycle
+3. **Hook Discovery Service**: Cluster-wide discovery of hook configurations
+4. **Workflow Manager**: Manages per-namespace event processing workflows
+5. **Event Watcher**: Monitors Kubernetes events using the Events API
+6. **Event Processing Pipeline**: Handles event filtering, template expansion, and agent calls
+7. **Deduplication Manager**: Implements race-condition-safe deduplication with configurable timeouts
+8. **Kagent API Client**: Handles secure communication with the Kagent platform via A2A protocol
+9. **Status Manager**: Updates hook object status with comprehensive event tracking
+10. **Template Engine**: Processes Go templates for dynamic prompt generation
 
 ## Components and Interfaces
 
@@ -45,7 +49,7 @@ metadata:
 spec:
   group: kagent.dev
   versions:
-  - name: v1
+  - name: v1alpha2
     schema:
       openAPIV3Schema:
         type: object
@@ -104,7 +108,9 @@ type ControllerManager interface {
 ```go
 type EventWatcher interface {
     WatchEvents(ctx context.Context) (<-chan Event, error)
-    FilterEvent(event Event, hooks []Hook) []EventMatch
+    FilterEvent(event Event, hooks []interface{}) []EventMatch
+    Start(ctx context.Context) error
+    Stop() error
 }
 
 type Event struct {
@@ -154,14 +160,18 @@ type DeduplicationManager interface {
     RecordEvent(hookName string, event Event) error
     CleanupExpiredEvents(hookName string) error
     GetActiveEvents(hookName string) []ActiveEvent
+    GetActiveEventsWithStatus(hookName string) []ActiveEvent
+    MarkNotified(hookName string, event Event)
 }
 
 type ActiveEvent struct {
-    EventType    string
-    ResourceName string
-    FirstSeen    time.Time
-    LastSeen     time.Time
-    Status       string
+    EventType      string
+    ResourceName   string
+    FirstSeen      time.Time
+    LastSeen       time.Time
+    Status         string
+    NotifiedAt     *time.Time
+    LastNotifiedAt *time.Time
 }
 ```
 
@@ -189,76 +199,142 @@ type EventConfiguration struct {
 }
 
 type HookStatus struct {
-    ActiveEvents []ActiveEvent `json:"activeEvents,omitempty"`
-    LastUpdated  metav1.Time   `json:"lastUpdated,omitempty"`
+    ActiveEvents []ActiveEventStatus `json:"activeEvents,omitempty"`
+    LastUpdated  metav1.Time         `json:"lastUpdated,omitempty"`
 }
-```### 
-Event Processing Flow
+
+type ActiveEventStatus struct {
+    EventType      string      `json:"eventType"`
+    ResourceName   string      `json:"resourceName"`
+    FirstSeen      metav1.Time `json:"firstSeen"`
+    LastSeen       metav1.Time `json:"lastSeen"`
+    Status         string      `json:"status"`
+    NotifiedAt     *metav1.Time `json:"notifiedAt,omitempty"`
+    LastNotifiedAt *metav1.Time `json:"lastNotifiedAt,omitempty"`
+}
+
+
+```### Event Processing Flow
 
 ```mermaid
 sequenceDiagram
     participant K8s as Kubernetes API
+    participant WC as Workflow Coordinator
+    participant HDS as Hook Discovery Service
+    participant WM as Workflow Manager
     participant EW as Event Watcher
-    participant EF as Event Filter
+    participant EPP as Event Processing Pipeline
     participant DM as Deduplication Manager
     participant KC as Kagent Client
     participant SM as Status Manager
-    
+
+    WC->>HDS: Discover hooks cluster-wide
+    HDS-->>WC: Return hook configurations
+    WC->>WM: Start namespace workflows
+    WM->>EW: Start event watching
     K8s->>EW: Event occurs
-    EW->>EF: Filter event against hooks
-    EF->>DM: Check if event should be processed
+    EW->>EPP: Forward all events
+    EPP->>EPP: Filter events against hooks
+    EPP->>DM: Check deduplication
     alt Event not duplicate
-        DM->>KC: Call Kagent agent
+        DM->>EPP: Process event
+        EPP->>EPP: Expand templates with event context
+        EPP->>KC: Call Kagent agent autonomously
         KC->>SM: Update hook status (firing)
         SM->>K8s: Update hook CRD status
     else Event is duplicate
         DM->>SM: Log duplicate event ignored
     end
-    
-    Note over DM: After 10 minutes
+
+    Note over DM: After configurable timeout
     DM->>SM: Mark event as resolved
     SM->>K8s: Update hook CRD status
 ```
 
+## Security Features
+
+### Template Security
+- ✅ Dangerous construct detection ({{define}}, {{call}}, {{data}}, etc.)
+- ✅ Input validation for template expressions
+- ✅ Length limits to prevent resource exhaustion
+- ✅ Bracket matching validation
+- ✅ Graceful fallback for malformed templates
+
+### Input Validation
+- ✅ Comprehensive Hook configuration validation
+- ✅ Kubernetes resource name validation
+- ✅ Agent ID format validation
+- ✅ Client configuration validation
+- ✅ URL and authentication validation
+
+### Autonomous Execution
+- ✅ Race-condition-safe event processing
+- ✅ Template-based prompt generation
+- ✅ Resource annotation for tracking fixes
+- ✅ Permission-less execution design
+- ✅ Comprehensive error handling and recovery
+
 ## Error Handling
 
 ### Kagent API Failures
-- Implement exponential backoff retry logic with maximum 3 attempts
-- Log detailed error information including request/response data
-- Update hook status with error information
-- Emit Kubernetes events for monitoring integration
+- ✅ Exponential backoff retry logic with configurable attempts
+- ✅ Detailed error logging with request/response context
+- ✅ Hook status updates with error information
+- ✅ Kubernetes event emission for monitoring integration
+- ✅ Circuit breaker pattern for repeated failures
 
 ### Event Processing Errors
-- Continue processing other events if one fails
-- Log errors with context (hook name, event details)
-- Update individual hook status without affecting others
-- Implement circuit breaker pattern for repeated failures
+- ✅ Continue processing other events if one fails
+- ✅ Contextual error logging (hook name, event details)
+- ✅ Individual hook status updates without affecting others
+- ✅ Graceful degradation with fallback mechanisms
 
 ### Controller Lifecycle Errors
-- Graceful shutdown with proper cleanup of watches
-- Recovery from API server disconnections
-- Proper handling of CRD schema validation errors
-- Leader election for high availability deployments
+- ✅ Graceful shutdown with proper workflow cleanup
+- ✅ Recovery from API server disconnections
+- ✅ Comprehensive CRD schema validation
+- ✅ Leader election for high availability deployments
+- ✅ Service-oriented architecture for fault isolation
 
 ## Testing Strategy
 
 ### Unit Tests
-- Mock Kubernetes API interactions using fake clients
-- Test event filtering logic with various event types
-- Validate deduplication logic with time-based scenarios
-- Test Kagent API client with mock HTTP responses
-- Verify CRD validation and status updates
+- ✅ Mock Kubernetes API interactions using fake clients
+- ✅ Test event filtering logic with various event types
+- ✅ Validate race-condition-safe deduplication with time-based scenarios
+- ✅ Test Kagent API client with mock HTTP responses and A2A protocol
+- ✅ Verify comprehensive CRD validation and status updates
+- ✅ Test template expansion with security validation
+- ✅ Validate service architecture components
 
 ### Integration Tests
-- Deploy controller in test Kubernetes cluster
-- Create hook objects and verify event monitoring
-- Trigger actual Kubernetes events and validate responses
-- Test controller restart and recovery scenarios
-- Validate proper cleanup when hooks are deleted
+- ✅ Deploy controller in test Kubernetes cluster with Helm
+- ✅ Create hook objects and verify autonomous event monitoring
+- ✅ Trigger actual Kubernetes events and validate agent responses
+- ✅ Test controller restart and recovery with workflow coordination
+- ✅ Validate proper cleanup when hooks are deleted
+- ✅ Test per-namespace workflow management
+- ✅ Verify template expansion and autonomous execution
 
 ### End-to-End Tests
-- Full workflow testing with real Kagent platform
-- Performance testing with high event volumes
-- Multi-hook scenarios with overlapping event types
-- Failure recovery testing with network partitions
-- Upgrade testing for CRD schema changes
+- ✅ Full workflow testing with real Kagent platform
+- ✅ Performance testing with high event volumes and deduplication
+- ✅ Multi-hook scenarios with overlapping event types
+- ✅ Failure recovery testing with network partitions and retries
+- ✅ Upgrade testing for CRD schema changes from v1alpha1 to v1alpha2
+- ✅ Security validation testing for template injection prevention
+- ✅ Dark mode logo testing and theme adaptation
+
+### Security Testing
+- ✅ Template injection prevention and validation
+- ✅ Input sanitization for all user-provided data
+- ✅ Race condition testing for concurrent event processing
+- ✅ Authentication and authorization validation
+- ✅ API security testing with malformed requests
+
+### Performance Testing
+- ✅ Event processing throughput with 100+ hooks
+- ✅ Memory usage validation with large event volumes
+- ✅ Template processing performance with complex expressions
+- ✅ Deduplication efficiency under high load
+- ✅ Database/memory storage performance for event state
