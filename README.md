@@ -1,7 +1,7 @@
 # khook
 
 <p align="center">
-  <img src="docs/khoo-logo.svg" alt="khook logo" width="240" />
+  <img src="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" width="240" />
 </p>
 
 A Kubernetes controller that enables automated responses to Kubernetes events by integrating with the Kagent platform.
