@@ -39,8 +39,9 @@ graph TB
 
 ### Hook Custom Resource Definition
 
-The Hook CRD defines the schema for hook configurations:```y
-aml
+The Hook CRD defines the schema for hook configurations:
+
+```yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -126,8 +127,9 @@ type EventMatch struct {
     Configuration EventConfiguration
     Event         Event
 }
-```### Kag
-ent API Client Interface
+```
+
+### Kagent API Client Interface
 
 ```go
 type KagentClient interface {
@@ -213,7 +215,9 @@ type ActiveEventStatus struct {
 }
 
 
-```### Event Processing Flow
+```
+
+## Event Processing Flow
 
 ```mermaid
 sequenceDiagram
