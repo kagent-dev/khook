@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kagent/hook-controller/internal/interfaces"
+	"github.com/antweiss/khook/internal/interfaces"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -190,20 +190,29 @@ func (m *Manager) GetActiveEvents(hookName string) []interfaces.ActiveEvent {
 		return []interfaces.ActiveEvent{}
 	}
 
-	// Clean up expired events first (mark as resolved)
-	now := time.Now()
 	activeEvents := make([]interfaces.ActiveEvent, 0, len(hookEventMap))
 
 	for _, activeEvent := range hookEventMap {
 		// Create a copy to avoid returning pointers to internal data
 		eventCopy := *activeEvent
 
-		// Check if event should be marked as resolved
-		if now.Sub(activeEvent.FirstSeen) > EventTimeoutDuration {
-			eventCopy.Status = StatusResolved
-		}
-
 		activeEvents = append(activeEvents, eventCopy)
+	}
+
+	return activeEvents
+}
+
+// GetActiveEventsWithStatus returns all active events with their current status
+// This method handles status calculation without race conditions
+func (m *Manager) GetActiveEventsWithStatus(hookName string) []interfaces.ActiveEvent {
+	activeEvents := m.GetActiveEvents(hookName)
+
+	now := time.Now()
+	for i := range activeEvents {
+		// Check if event should be marked as resolved
+		if now.Sub(activeEvents[i].FirstSeen) > EventTimeoutDuration {
+			activeEvents[i].Status = StatusResolved
+		}
 	}
 
 	return activeEvents

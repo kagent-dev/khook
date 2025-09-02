@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kagent/hook-controller/internal/interfaces"
-	"github.com/kagent/hook-controller/internal/logging"
+	"github.com/antweiss/khook/internal/interfaces"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestNewClient(t *testing.T) {
-	logger := logging.NewLogger("test")
+	logger := log.Log.WithName("test")
 
 	t.Run("with custom config", func(t *testing.T) {
 		config := &Config{
@@ -28,14 +28,14 @@ func TestNewClient(t *testing.T) {
 
 	t.Run("with nil config uses defaults", func(t *testing.T) {
 		client := NewClient(nil, logger)
-		assert.Equal(t, "https://api.kagent.dev", client.config.BaseURL)
-		assert.Equal(t, "hook-controller", client.config.UserID)
-		assert.Equal(t, 30*time.Second, client.config.Timeout)
+		assert.Equal(t, "http://kagent-controller.kagent.svc.local:8083", client.config.BaseURL)
+		assert.Equal(t, "admin@kagent.dev", client.config.UserID)
+		assert.Equal(t, 120*time.Second, client.config.Timeout)
 	})
 }
 
 func TestClient_Authenticate(t *testing.T) {
-	logger := logging.NewLogger("test")
+	logger := log.Log.WithName("test")
 
 	t.Run("authentication creates client successfully", func(t *testing.T) {
 		config := &Config{
@@ -54,7 +54,7 @@ func TestClient_Authenticate(t *testing.T) {
 }
 
 func TestClient_CallAgent(t *testing.T) {
-	logger := logging.NewLogger("test")
+	logger := log.Log.WithName("test")
 
 	t.Run("call agent with invalid URL fails", func(t *testing.T) {
 		config := &Config{
@@ -110,7 +110,7 @@ func TestClient_CallAgent(t *testing.T) {
 
 func TestDefaultConfig(t *testing.T) {
 	config := DefaultConfig()
-	assert.Equal(t, "https://api.kagent.dev", config.BaseURL)
-	assert.Equal(t, "hook-controller", config.UserID)
-	assert.Equal(t, 30*time.Second, config.Timeout)
+	assert.Equal(t, "http://kagent-controller.kagent.svc.local:8083", config.BaseURL)
+	assert.Equal(t, "admin@kagent.dev", config.UserID)
+	assert.Equal(t, 120*time.Second, config.Timeout)
 }

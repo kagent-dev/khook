@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: leader-election-rolebinding
-  namespace: kagent-system
+  namespace: kagent
   labels:
     app.kubernetes.io/name: kagent-hook-controller
     app.kubernetes.io/instance: controller-manager
@@ -17,4 +17,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: controller-manager
-  namespace: kagent-system
+  namespace: kagent

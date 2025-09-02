@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
+	"github.com/antweiss/khook/internal/interfaces"
 	"github.com/go-logr/logr"
 	"github.com/kagent-dev/kagent/go/pkg/client"
 	"github.com/kagent-dev/kagent/go/pkg/client/api"
-	"github.com/kagent/hook-controller/internal/interfaces"
 	a2aclient "trpc.group/trpc-go/trpc-a2a-go/client"
 	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
@@ -19,6 +20,62 @@ type Config struct {
 	BaseURL string
 	UserID  string
 	Timeout time.Duration
+}
+
+// Validate validates the client configuration
+func (c *Config) Validate() error {
+	if c == nil {
+		return fmt.Errorf("config cannot be nil")
+	}
+
+	// Validate BaseURL
+	if c.BaseURL == "" {
+		return fmt.Errorf("BaseURL cannot be empty")
+	}
+
+	if len(c.BaseURL) > 2048 {
+		return fmt.Errorf("BaseURL too long: %d characters (max 2048)", len(c.BaseURL))
+	}
+
+	// Basic URL validation
+	if !strings.HasPrefix(c.BaseURL, "http://") && !strings.HasPrefix(c.BaseURL, "https://") {
+		return fmt.Errorf("BaseURL must start with http:// or https://")
+	}
+
+	// Validate UserID
+	if c.UserID == "" {
+		return fmt.Errorf("UserID cannot be empty")
+	}
+
+	if len(c.UserID) > 100 {
+		return fmt.Errorf("UserID too long: %d characters (max 100)", len(c.UserID))
+	}
+
+	// Validate UserID format (basic email or identifier format)
+	if strings.Contains(c.UserID, "@") {
+		// If it looks like an email, validate email format
+		if !strings.Contains(c.UserID, ".") || len(strings.Split(c.UserID, "@")) != 2 {
+			return fmt.Errorf("UserID appears to be an email but has invalid format")
+		}
+	} else {
+		// For non-email user IDs, allow alphanumeric, hyphens, underscores, dots
+		for _, r := range c.UserID {
+			if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.') {
+				return fmt.Errorf("UserID contains invalid character '%c', only alphanumeric, hyphens, underscores, and dots allowed", r)
+			}
+		}
+	}
+
+	// Validate Timeout
+	if c.Timeout <= 0 {
+		return fmt.Errorf("Timeout must be positive, got %v", c.Timeout)
+	}
+
+	if c.Timeout > 300*time.Second {
+		return fmt.Errorf("Timeout too long: %v (max 300s)", c.Timeout)
+	}
+
+	return nil
 }
 
 // DefaultConfig returns a default configuration

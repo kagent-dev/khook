@@ -16,8 +16,8 @@ This Helm chart deploys the Kagent Hook Controller, a Kubernetes controller that
 # Clone the repository and install from local chart
 git clone https://github.com/antweiss/khook.git
 cd khook
-helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
+helm install khook-controller ./charts/khook-controller \
+  --namespace kagent \
   --create-namespace \
   # no API token required
 ```
@@ -25,8 +25,8 @@ helm install kagent-hook-controller ./charts/kagent-hook-controller \
 ### Install with Custom Values
 
 ```bash
-helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
+helm install khook-controller ./charts/khook-controller \
+  --namespace kagent \
   --create-namespace \
   --values custom-values.yaml
 ```
@@ -58,14 +58,14 @@ The following table lists the configurable parameters and their default values:
 | `metrics.enabled` | Enable metrics endpoint | `true` |
 | `metrics.serviceMonitor.enabled` | Create ServiceMonitor for Prometheus | `false` |
 | `namespace.create` | Create namespace | `true` |
-| `namespace.name` | Namespace name | `kagent-system` |
+| `namespace.name` | Namespace name | `kagent` |
 
 ## Examples
 
 ### Basic Installation
 
 ```bash
-helm install kagent-hook-controller ./charts/kagent-hook-controller
+helm install khook-controller ./charts/khook-controller
 ```
 
 ### Production Installation with Monitoring
@@ -109,13 +109,13 @@ affinity:
           - key: app.kubernetes.io/name
             operator: In
             values:
-            - kagent-hook-controller
+            - khook-controller
         topologyKey: kubernetes.io/hostname
 ```
 
 ```bash
-helm install kagent-hook-controller ./charts/kagent-hook-controller \
-  --namespace kagent-system \
+helm install khook-controller ./charts/khook-controller \
+  --namespace kagent \
   --create-namespace \
   --values production-values.yaml
 ```
@@ -144,17 +144,17 @@ spec:
 
 The controller exposes metrics on port 8080 at `/metrics` endpoint. Key metrics include:
 
-- `kagent_hook_controller_events_processed_total` - Total number of events processed
-- `kagent_hook_controller_api_calls_total` - Total number of Kagent API calls
-- `kagent_hook_controller_active_hooks` - Number of active hooks
+- `khook_controller_events_processed_total` - Total number of events processed
+- `khook_controller_api_calls_total` - Total number of Kagent API calls
+- `khook_controller_active_hooks` - Number of active hooks
 
 ## Troubleshooting
 
 ### Check Controller Status
 
 ```bash
-kubectl get pods -n kagent-system -l app.kubernetes.io/name=kagent-hook-controller
-kubectl logs -n kagent-system -l app.kubernetes.io/name=kagent-hook-controller
+kubectl get pods -n kagent -l app.kubernetes.io/name=khook-controller
+kubectl logs -n kagent -l app.kubernetes.io/name=khook-controller
 ```
 
 ### Verify Hook Resources
@@ -167,14 +167,14 @@ kubectl describe hook <hook-name> -n <namespace>
 ### Check Events
 
 ```bash
-kubectl get events -n kagent-system --field-selector involvedObject.kind=Hook
+kubectl get events -n kagent --field-selector involvedObject.kind=Hook
 ```
 
 ## Uninstallation
 
 ```bash
-helm uninstall kagent-hook-controller -n kagent-system
-kubectl delete namespace kagent-system
+helm uninstall khook-controller -n kagent
+kubectl delete namespace kagent
 ```
 
 ## Contributing

@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kagent/hook-controller/internal/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestNewClientFromEnv(t *testing.T) {
-	logger := logging.NewLogger("test")
+	logger := log.Log.WithName("test")
 
 	t.Run("with all environment variables", func(t *testing.T) {
 		// Set environment variables
@@ -38,9 +38,9 @@ func TestNewClientFromEnv(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should use defaults for all values
-		assert.Equal(t, "https://api.kagent.dev", client.config.BaseURL)
-		assert.Equal(t, "hook-controller", client.config.UserID)
-		assert.Equal(t, 30*time.Second, client.config.Timeout)
+		assert.Equal(t, "http://kagent-controller.kagent.svc.local:8083", client.config.BaseURL)
+		assert.Equal(t, "admin@kagent.dev", client.config.UserID)
+		assert.Equal(t, 120*time.Second, client.config.Timeout)
 	})
 
 	t.Run("with legacy environment variable", func(t *testing.T) {

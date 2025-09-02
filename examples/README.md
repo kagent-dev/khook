@@ -72,5 +72,5 @@ This directory contains example Hook configurations for common use cases.
 
 4. **Check controller logs:**
    ```bash
-   kubectl logs -n kagent-system deployment/kagent-hook-controller -f
+   kubectl logs -n kagent deployment/kagent-hook-controller -f
    ```

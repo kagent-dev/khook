@@ -24,16 +24,16 @@ cd khook
 kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
 
 # Install CRDs
-helm install kagent-hook-crds ./charts/kagent-hook-crds \
+helm install khook-crds ./charts/kagent-hook-crds \
   --namespace kagent \
   
 # Install controller with default values
-helm install khook ./charts/kagent-hook-controller \
+helm install khook ./charts/khook-controller \
   --namespace kagent \
   --create-namespace
 
 # Optional: customize API URL and other values
-helm install khook ./charts/kagent-hook-controller \
+helm install khook ./charts/khook-controller \
   --namespace kagent \
   --create-namespace \
   --set kagent.apiUrl="https://api.kagent.dev"
@@ -42,17 +42,17 @@ helm install khook ./charts/kagent-hook-controller \
 kubectl get pods -n kagent
 ```
 
-Chart location: charts/kagent-hook-controller (see repo tree).
+Chart location: charts/khook-controller (see repo tree).
 
 #### One-liner install
 
 ```bash
 TMP_DIR="$(mktemp -d)" && \
   git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
-  helm install kagent-hook-crds "$TMP_DIR/khook/charts/kagent-hook-crds" \
+  helm install khook-crds "$TMP_DIR/khook/charts/khook-crds" \
     --namespace kagent \
     --create-namespace && \
-  helm install khook "$TMP_DIR/khook/charts/kagent-hook-controller" \
+  helm install khook "$TMP_DIR/khook/charts/khook-controller" \
     --namespace kagent \
     --create-namespace && \
   rm -rf "$TMP_DIR"
@@ -92,7 +92,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: khook-config
-  namespace: kagent-system
+  namespace: kagent
 data:
   LOG_LEVEL: "info"
   METRICS_PORT: "8080"
@@ -111,7 +111,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: khook
-  namespace: kagent-system
+  namespace: kagent
 spec:
   template:
     spec:
@@ -132,10 +132,10 @@ spec:
 
 ```bash
 # Verify controller is running
-kubectl get pods -n kagent-system -l app=khook
+kubectl get pods -n kagent -l app=khook
 
 # Check controller logs
-kubectl logs -n kagent-system deployment/khook
+kubectl logs -n kagent deployment/khook
 ```
 
 ### 2. Verify CRD Installation
@@ -185,7 +185,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: khook
-  namespace: kagent-system
+  namespace: kagent
 spec:
   replicas: 3
   template:
@@ -196,7 +196,7 @@ spec:
         - name: LEADER_ELECTION
           value: "true"
         - name: LEADER_ELECTION_NAMESPACE
-          value: "kagent-system"
+          value: "kagent"
 ```
 
 ### Security Hardening
@@ -207,7 +207,7 @@ spec:
    kind: ServiceAccount
    metadata:
      name: khook
-     namespace: kagent-system
+     namespace: kagent
    ```
 
 2. **Apply security context:**
@@ -226,7 +226,7 @@ spec:
    kind: NetworkPolicy
    metadata:
      name: khook
-     namespace: kagent-system
+     namespace: kagent
    spec:
      podSelector:
        matchLabels:
@@ -262,7 +262,7 @@ spec:
    kind: ServiceMonitor
    metadata:
      name: khook
-     namespace: kagent-system
+     namespace: kagent
    spec:
      selector:
        matchLabels:
@@ -289,19 +289,19 @@ spec:
 2. **Controller Won't Start:**
    ```bash
    # Check RBAC permissions
-   kubectl auth can-i get events --as=system:serviceaccount:kagent-system:khook
+   kubectl auth can-i get events --as=system:serviceaccount:kagent:khook
    
    # Check resource constraints
-   kubectl describe pod -n kagent-system -l app=khook
+   kubectl describe pod -n kagent -l app=khook
    ```
 
 3. **API Connection Issues:**
    ```bash
    # Verify credentials
-   kubectl get secret kagent-credentials -n kagent-system -o yaml
+   kubectl get secret kagent-credentials -n kagent -o yaml
    
    # Test connectivity
-   kubectl exec -n kagent-system deployment/khook -- \
+   kubectl exec -n kagent deployment/khook -- \
      curl -v https://api.kagent.dev/health
    ```
 
@@ -310,7 +310,7 @@ spec:
 Enable debug logging for troubleshooting:
 
 ```bash
-kubectl set env deployment/khook -n kagent-system LOG_LEVEL=debug
+kubectl set env deployment/khook -n kagent LOG_LEVEL=debug
 ```
 
 ## Upgrading
@@ -319,18 +319,18 @@ kubectl set env deployment/khook -n kagent-system LOG_LEVEL=debug
 
 ```bash
 # From the cloned repository root
-helm upgrade khook ./charts/kagent-hook-controller \
-  --namespace kagent-system
+helm upgrade khook ./charts/khook-controller \
+  --namespace kagent
 ```
 
 ### Manual Upgrade
 
 ```bash
 # Update CRDs first
-kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/crds.yaml
+kubectl apply -f https://github.com/antweiss/khook/releases/latest/download/crds.yaml
 
 # Update controller
-kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/latest/download/install.yaml
+kubectl apply -f https://github.com/antweiss/khook/releases/latest/download/install.yaml
 ```
 
 ## Uninstallation
@@ -342,7 +342,7 @@ kubectl apply -f https://github.com/kagent-dev/kagent-hook-controller/releases/l
 kubectl delete hooks --all -A
 
 # Remove controller installed via Helm
-helm uninstall khook -n kagent-system
+helm uninstall khook -n kagent
 
 # Remove CRDs (optional - this will delete all hook resources)
 kubectl delete crd hooks.kagent.dev
@@ -351,7 +351,7 @@ kubectl delete crd hooks.kagent.dev
 ### Helm Uninstall
 
 ```bash
-helm uninstall khook --namespace kagent-system
+helm uninstall khook --namespace kagent
 ```
 
 ## Next Steps

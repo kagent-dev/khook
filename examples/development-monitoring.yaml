@@ -32,6 +32,10 @@ spec:
       - Database connection issues
       - Resource limits too low for debugging
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Learning opportunity: Use this as a chance to improve error handling!
 
   # OOM kills in development
@@ -47,5 +51,9 @@ spec:
       2. Profile your application's memory usage
       3. Check for memory leaks in recent changes
       4. Consider using memory profiling tools
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
       
       This is a great learning opportunity to understand memory management!

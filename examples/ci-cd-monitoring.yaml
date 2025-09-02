@@ -56,6 +56,10 @@ spec:
          - Pipeline configuration adjustments
          - Communication to development teams
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Focus on maintaining deployment velocity and reliability.
 
   # Monitor restarts in CI/CD environments
@@ -102,6 +106,10 @@ spec:
          - Artifact recovery if needed
          - Timeline impact assessment
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Ensure minimal disruption to development workflow.
 
   # Monitor probe failures in CI/CD services
@@ -147,5 +155,9 @@ spec:
          - Failover to backup systems if available
          - User communication and status updates
          - Post-incident review and improvements
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
       
       Prioritize restoring CI/CD service availability quickly.

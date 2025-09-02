@@ -16,4 +16,4 @@ images:
   newName: otomato/khook
   newTag: latest
 
-namespace: kagent-system
+namespace: kagent

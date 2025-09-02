@@ -11,7 +11,7 @@ webhook:
 leaderElection:
   leaderElect: true
   resourceName: khook-leader-election
-  resourceNamespace: kagent-system
+  resourceNamespace: kagent
 kagent:
   apiUrl: "https://api.kagent.dev"
   timeout: "30s"

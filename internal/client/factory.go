@@ -31,26 +31,18 @@ func NewClientFromEnv(logger logr.Logger) (*Client, error) {
 		config.Timeout = timeout
 	}
 
+	// Validate configuration
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid client configuration: %w", err)
+	}
+
 	return NewClient(config, logger), nil
 }
 
-// ValidateConfig validates the client configuration
+// ValidateConfig validates the client configuration (deprecated: use config.Validate() instead)
 func ValidateConfig(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config cannot be nil")
 	}
-
-	if config.BaseURL == "" {
-		return fmt.Errorf("BaseURL cannot be empty")
-	}
-
-	if config.UserID == "" {
-		return fmt.Errorf("UserID cannot be empty")
-	}
-
-	if config.Timeout <= 0 {
-		return fmt.Errorf("Timeout must be positive")
-	}
-
-	return nil
+	return config.Validate()
 }

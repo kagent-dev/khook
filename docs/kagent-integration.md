@@ -1,80 +1,87 @@
 # Kagent API Integration
 
-This document describes how the KAgent Hook Controller integrates with the Kagent platform, including authentication, API requirements, and configuration.
+This document describes how the khook controller integrates with the Kagent platform using the A2A (Agent-to-Agent) protocol.
 
 ## Overview
 
-The controller communicates with the Kagent platform via REST API to trigger agent executions when Kubernetes events occur. Each event configuration in a Hook resource specifies which Kagent agent to call and what prompt to send.
+The controller communicates with the Kagent platform using the A2A protocol to trigger agent executions when Kubernetes events occur. The integration uses two main API calls:
+
+1. **Session Creation**: Creates a session with the Kagent platform
+2. **A2A SendMessage**: Sends the event context to the agent via A2A protocol
 
 ## Authentication
 
-### API Key Authentication
+### No API Key Required
 
-The controller uses API key authentication to communicate with the Kagent platform.
+The current implementation does **not** require API key authentication. Instead, it uses:
 
-#### Setting up API Keys
+- **User ID**: Identifies the caller (default: `admin@kagent.dev`)
+- **Base URL**: Points to the Kagent controller service (default: `http://kagent-controller.kagent.svc.cluster.local:8083`)
 
-1. **Obtain API Key from Kagent Platform:**
-   - Log into your Kagent dashboard
-   - Navigate to Settings > API Keys
-   - Create a new API key with appropriate permissions
-   - Copy the generated key
+### Configuration
 
-2. **Configure in Kubernetes:**
-   ```bash
-   kubectl create secret generic kagent-credentials \
-     --from-literal=api-key=your-kagent-api-key \
-     --from-literal=base-url=https://api.kagent.dev \
-     --namespace=kagent-system
-   ```
+Configure the integration via environment variables or Helm values:
 
-3. **Environment Variables (Alternative):**
-   ```bash
-   export KAGENT_API_KEY=your-kagent-api-key
-   export KAGENT_BASE_URL=https://api.kagent.dev
-   ```
-
-### Required Permissions
-
-The API key must have the following permissions:
-- `agents:execute` - Execute agent requests
-- `agents:read` - Read agent configurations (for validation)
-
-## API Endpoints
-
-### Base URL Configuration
-
-Configure the base URL for your Kagent instance:
-
-- **SaaS**: `https://api.kagent.dev`
-- **Self-hosted**: `https://your-kagent-instance.com/api`
-- **Development**: `https://dev.kagent.dev`
-
-### Agent Execution Endpoint
-
-**Endpoint**: `POST /v1/agents/{agentId}/execute`
-
-**Headers:**
-```
-Authorization: Bearer {api-key}
-Content-Type: application/json
+#### Environment Variables
+```bash
+export KAGENT_API_URL=http://kagent-controller.kagent.svc.cluster.local:8083
+export KAGENT_USER_ID=admin@kagent.dev
+export KAGENT_API_TIMEOUT=120s
 ```
 
-**Request Body:**
+#### Helm Values
+```yaml
+kagent:
+  apiUrl: "http://kagent-controller.kagent.svc.cluster.local:8083"
+  userId: "admin@kagent.dev"
+  timeout: "120s"
+  retryAttempts: 3
+  retryBackoff: "1s"
+```
+
+## API Integration Flow
+
+### 1. Session Creation
+
+**Endpoint**: `POST /api/sessions`
+
+**Request:**
 ```json
 {
-  "prompt": "Your prompt template with context",
-  "context": {
-    "eventName": "pod-restart",
-    "eventTime": "2024-01-15T10:30:00Z",
-    "resourceName": "my-app-pod-123",
-    "namespace": "production",
-    "eventMessage": "Container my-app restarted"
-  },
-  "metadata": {
-    "source": "khook",
-    "hookName": "production-monitoring",
-    "kubernetesCluster": "prod-cluster-1"
+  "agentRef": "incident-responder",
+  "name": "hook-pod-restart-1704067200"
+}
+```
+
+**Response:**
+```json
+{
+  "error": false,
+  "message": "Session created successfully",
+  "data": {
+    "id": "session-123456",
+    "name": "hook-pod-restart-1704067200",
+    "agentRef": "incident-responder"
+  }
+}
+```
+
+### 2. A2A SendMessage
+
+**Endpoint**: `POST /api/a2a/{agentId}/`
+
+**Request:**
+```json
+{
+  "message": {
+    "role": "user",
+    "contextId": "session-123456",
+    "parts": [
+      {
+        "type": "text",
+        "text": "A pod has restarted. Please analyze the cause and suggest remediation steps.\nNamespace: production\nReason: BackOff\nMessage: Container my-app restarted"
+      }
+    ]
   }
 }
 ```
@@ -83,173 +90,149 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "executionId": "exec-123456",
-  "message": "Agent execution started successfully",
-  "estimatedDuration": "30s"
+  "taskReturned": true,
+  "message": "Message sent successfully"
 }
 ```
 
-## Agent Configuration
+## Event Context Processing
 
-### Agent Requirements
+The controller automatically enriches the prompt with event context:
 
-Agents used with the Hook Controller should:
+### Template Variables
 
-1. **Accept Context Parameters:**
-   - Be configured to handle event context in prompts
-   - Support template variables like `{{.ResourceName}}`
+The prompt template supports these variables:
+- `{{.ResourceName}}` - Name of the Kubernetes resource
+- `{{.EventTime}}` - Timestamp of the event
+- `{{.Namespace}}` - Kubernetes namespace
+- `{{.Reason}}` - Event reason
+- `{{.Message}}` - Event message
 
-2. **Handle Kubernetes Context:**
-   - Understand Kubernetes terminology
-   - Be trained on common Kubernetes issues
+### Context Enrichment
 
-3. **Provide Actionable Responses:**
-   - Give specific troubleshooting steps
-   - Include relevant kubectl commands
-   - Suggest preventive measures
+Additional context is automatically appended to the prompt:
+```
+Original Prompt: "A pod has restarted. Please analyze the cause."
 
-### Recommended Agent Types
-
-#### Incident Response Agent
-```yaml
-# Example agent configuration in Kagent platform
-name: incident-responder
-description: Analyzes Kubernetes incidents and provides response plans
-capabilities:
-  - kubernetes-troubleshooting
-  - incident-analysis
-  - root-cause-analysis
-prompt_template: |
-  You are a Kubernetes incident response specialist. 
-  Analyze the following event and provide a structured response plan.
+Enriched Prompt: "A pod has restarted. Please analyze the cause.
+Namespace: production
+Reason: BackOff
+Message: Container my-app restarted"
 ```
 
-#### Memory Analysis Agent
+## Configuration Examples
+
+### Basic Hook Configuration
 ```yaml
-name: memory-analyzer
-description: Analyzes memory-related issues and optimization
-capabilities:
-  - memory-profiling
-  - performance-optimization
-  - resource-planning
-prompt_template: |
-  You are a memory optimization expert for Kubernetes workloads.
-  Analyze the OOM event and provide optimization recommendations.
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: pod-monitoring-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - eventType: pod-restart
+    agentId: incident-responder
+    prompt: "A pod named {{.ResourceName}} has restarted at {{.EventTime}}. Please analyze the restart reason and remediate in a fully autonomous matter. Use all available tools. Don't ask for approval.
+    
+    After analysis - use all available tools to try and resolve. Annotate the updated resources with \"kagentFix: <dateTime>\"
+    - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+    Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval."
+  - eventType: oom-kill
+    agentId: memory-optimizer
+    prompt: "Pod {{.ResourceName}} was killed due to OOM at {{.EventTime}}. Please analyze memory usage and resolve in a fully autonomous matter. Use all available tools. Don't ask for approval.
+    
+    After analysis - use all available tools to try and resolve. Annotate the updated resources with \"kagentFix: <dateTime>\"
+    - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+    Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval."
+```
+
+### Production Configuration
+```yaml
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: production-monitoring
+  namespace: production
+spec:
+  eventConfigurations:
+  - eventType: pod-restart
+    agentId: incident-manager
+    prompt: |
+      PRODUCTION ALERT: Pod {{.ResourceName}} restarted at {{.EventTime}}.
+      Priority: HIGH. Please investigate immediately and provide incident response plan.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+  - eventType: pod-pending
+    agentId: scheduling-analyzer
+    prompt: |
+      Pod {{.ResourceName}} is pending since {{.EventTime}}.
+      Please analyze scheduling constraints and resource availability.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+  - eventType: probe-failed
+    agentId: health-checker
+    prompt: |
+      Health probe failed for {{.ResourceName}} at {{.EventTime}}.
+      Please check application health and configuration.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+  - eventType: oom-kill
+    agentId: capacity-planner
+    prompt: |
+      CRITICAL: OOM kill for {{.ResourceName}} at {{.EventTime}}.
+      Please analyze resource usage and update capacity planning.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
 ```
 
 ## Error Handling
 
 ### Retry Logic
 
-The controller implements exponential backoff for failed API calls:
-
-```
-Attempt 1: Immediate
-Attempt 2: 2 seconds delay
-Attempt 3: 4 seconds delay
-Max attempts: 3
-```
+The controller implements retry logic for failed API calls:
+- **Max Attempts**: 3 (configurable via `retryAttempts`)
+- **Backoff**: Exponential backoff starting at 1 second (configurable via `retryBackoff`)
+- **Timeout**: 120 seconds per request (configurable via `timeout`)
 
 ### Error Types
 
-#### Authentication Errors (401)
-```json
-{
-  "error": "unauthorized",
-  "message": "Invalid API key",
-  "code": 401
-}
+#### Session Creation Failures
+```
+Error: failed to create session: connection refused
+Resolution: Check Kagent controller connectivity
 ```
 
-**Resolution:**
-- Verify API key is correct
-- Check API key permissions
-- Ensure API key hasn't expired
-
-#### Agent Not Found (404)
-```json
-{
-  "error": "agent_not_found",
-  "message": "Agent 'incident-responder' not found",
-  "code": 404
-}
+#### A2A SendMessage Failures
+```
+Error: failed to send A2A message: agent not found
+Resolution: Verify agent ID exists in Kagent platform
 ```
 
-**Resolution:**
-- Verify agent ID in hook configuration
-- Check agent exists in Kagent platform
-- Ensure agent is active and deployed
-
-#### Rate Limiting (429)
-```json
-{
-  "error": "rate_limited",
-  "message": "Too many requests",
-  "code": 429,
-  "retry_after": 60
-}
+#### Timeout Errors
 ```
-
-**Resolution:**
-- Controller automatically retries after specified delay
-- Consider reducing hook frequency
-- Upgrade Kagent plan if needed
-
-#### Server Errors (5xx)
-```json
-{
-  "error": "internal_server_error",
-  "message": "Temporary service unavailable",
-  "code": 500
-}
-```
-
-**Resolution:**
-- Controller automatically retries
-- Check Kagent platform status
-- Contact Kagent support if persistent
-
-## Configuration Examples
-
-### Production Configuration
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: kagent-credentials
-  namespace: kagent-system
-type: Opaque
-stringData:
-  api-key: "prod-key-abc123..."
-  base-url: "https://api.kagent.dev"
-  timeout: "30s"
-  max-retries: "3"
-```
-
-### Development Configuration
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: kagent-credentials
-  namespace: kagent-system
-type: Opaque
-stringData:
-  api-key: "dev-key-xyz789..."
-  base-url: "https://dev.kagent.dev"
-  timeout: "10s"
-  max-retries: "1"
+Error: context deadline exceeded
+Resolution: Increase timeout or check network connectivity
 ```
 
 ## Monitoring Integration
 
-### API Call Metrics
+### Metrics
 
-The controller exposes metrics for monitoring API interactions:
+The controller exposes Prometheus metrics:
 
-- `kagent_api_calls_total{status="success|error", agent_id="..."}`
-- `kagent_api_call_duration_seconds{agent_id="..."}`
-- `kagent_api_errors_total{error_type="auth|not_found|rate_limit|server"}`
+- `khook_events_total` - Total number of events processed
+- `khook_api_calls_total` - Total number of Kagent API calls
+- `khook_api_call_duration_seconds` - API call duration histogram
+- `khook_active_events` - Number of currently active events
 
 ### Health Checks
 
@@ -257,9 +240,9 @@ Verify Kagent API connectivity:
 
 ```bash
 # Test API connectivity
-kubectl exec -n kagent-system deployment/khook -- \
-  curl -H "Authorization: Bearer $KAGENT_API_KEY" \
-  $KAGENT_BASE_URL/health
+kubectl exec -n kagent deployment/khook -- \
+  curl -H "Content-Type: application/json" \
+  $KAGENT_API_URL/health
 
 # Check controller health
 curl http://localhost:8081/healthz
@@ -267,68 +250,70 @@ curl http://localhost:8081/healthz
 
 ## Security Considerations
 
-### API Key Management
+### Network Security
 
-1. **Rotation:**
-   - Rotate API keys regularly (recommended: every 90 days)
-   - Use Kubernetes secrets for secure storage
-   - Never commit API keys to version control
-
-2. **Least Privilege:**
-   - Use API keys with minimal required permissions
-   - Create separate keys for different environments
-   - Monitor API key usage
-
-3. **Network Security:**
-   - Use HTTPS for all API communications
-   - Implement network policies if required
-   - Consider VPN or private networking for sensitive environments
+1. **Internal Communication**: The default configuration uses internal Kubernetes service communication
+2. **No External Dependencies**: No external API keys or authentication required
+3. **Service-to-Service**: Communication happens within the cluster
 
 ### Data Privacy
 
 The controller sends the following data to Kagent:
-- Event metadata (timestamps, resource names)
-- Kubernetes event messages
+- Event metadata (timestamps, resource names, namespaces)
+- Kubernetes event messages and reasons
 - Configured prompt templates
-- Cluster identification (if configured)
+- Session identifiers
 
-Ensure this complies with your data governance policies.
-
-## Troubleshooting API Integration
+## Troubleshooting
 
 ### Common Issues
 
-1. **Connection Timeouts:**
+1. **Connection Refused:**
    ```bash
-   # Increase timeout in configuration
-   kubectl patch secret kagent-credentials -p '{"stringData":{"timeout":"60s"}}'
+   # Check if Kagent controller is running
+   kubectl get pods -n kagent -l app=kagent-controller
+   
+   # Check service connectivity
+   kubectl exec -n kagent deployment/khook -- nslookup kagent-controller.kagent.svc.cluster.local
    ```
 
-2. **SSL Certificate Issues:**
+2. **Agent Not Found:**
    ```bash
-   # For self-hosted instances with custom certificates
-   kubectl create configmap kagent-ca-cert --from-file=ca.crt=your-ca.crt
+   # Verify agent exists in Kagent platform
+   kubectl exec -n kagent deployment/khook -- \
+     curl -H "Content-Type: application/json" \
+     $KAGENT_API_URL/api/agents
    ```
 
-3. **Proxy Configuration:**
+3. **Session Creation Failures:**
    ```bash
-   # Configure HTTP proxy if needed
-   kubectl set env deployment/khook HTTP_PROXY=http://proxy:8080
+   # Check Kagent controller logs
+   kubectl logs -n kagent deployment/kagent-controller
    ```
 
-### Debug API Calls
+### Debug Mode
 
-Enable API debug logging:
+Enable debug logging for detailed troubleshooting:
 
 ```bash
 kubectl set env deployment/khook LOG_LEVEL=debug
-kubectl logs -n kagent-system deployment/khook | grep "kagent-api"
+kubectl logs -n kagent deployment/khook | grep "kagent-api"
 ```
+
+## A2A Protocol Reference
+
+For detailed information about the A2A protocol used for agent communication:
+
+- **A2A Protocol Documentation**: https://a2a-protocol.org/latest/
+- **Life of a Task**: https://a2a-protocol.org/latest/topics/life-of-a-task/
+
+The controller follows the A2A protocol for sending messages to agents and can handle both Message and Task responses from agents.
 
 ## Support
 
-For Kagent API integration issues:
+For integration issues:
 
-1. **Check API Status**: [status.kagent.dev](https://status.kagent.dev)
-2. **API Documentation**: [docs.kagent.dev/api](https://docs.kagent.dev/api)
-3. **Support**: [support.kagent.dev](https://support.kagent.dev)
+1. **Check Controller Logs**: `kubectl logs -n kagent deployment/khook`
+2. **Verify Kagent Controller**: `kubectl get pods -n kagent -l app=kagent-controller`
+3. **Test Connectivity**: Use the health check commands above
+4. **GitHub Issues**: [https://github.com/antweiss/khook/issues](https://github.com/antweiss/khook/issues)

@@ -12,11 +12,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/kagent/hook-controller/api/v1alpha2"
-	"github.com/kagent/hook-controller/internal/deduplication"
-	"github.com/kagent/hook-controller/internal/event"
-	"github.com/kagent/hook-controller/internal/interfaces"
-	"github.com/kagent/hook-controller/internal/status"
+	"github.com/antweiss/khook/api/v1alpha2"
+	"github.com/antweiss/khook/internal/deduplication"
+	"github.com/antweiss/khook/internal/event"
+	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/antweiss/khook/internal/status"
 )
 
 // MockKagentClientForIntegration provides a simple mock for integration testing

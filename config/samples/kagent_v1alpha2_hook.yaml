@@ -13,10 +13,22 @@ spec:
   eventConfigurations:
   - eventType: "pod-restart"
     agentId: "pod-restart-agent"
-    prompt: "A pod has restarted. Please analyze the restart reason and provide recommendations."
+    prompt: "A pod has restarted. Please analyze the restart reason and provide recommendations.
+    
+    After analysis - use all available tools to try and resolve. Annotate the updated resources with \"kagentFix: <dateTime>\"
+    - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+    Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval."
   - eventType: "pod-pending"
     agentId: "scheduling-agent"
-    prompt: "A pod is stuck in pending state. Please investigate scheduling issues and suggest solutions."
+    prompt: "A pod is stuck in pending state. Please investigate scheduling issues and suggest solutions.
+    
+    After analysis - use all available tools to try and resolve. Annotate the updated resources with \"kagentFix: <dateTime>\"
+    - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+    Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval."
   - eventType: "oom-kill"
     agentId: "memory-agent"
-    prompt: "A pod was killed due to out of memory. Please analyze memory usage and provide optimization recommendations."
+    prompt: "A pod was killed due to out of memory. Please analyze memory usage and provide optimization recommendations.
+    
+    After analysis - use all available tools to try and resolve. Annotate the updated resources with \"kagentFix: <dateTime>\"
+    - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+    Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval."

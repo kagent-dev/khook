@@ -50,6 +50,10 @@ spec:
          - Validate access controls and permissions
          - Recommend security hardening measures
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Treat this as a potential security incident until proven otherwise.
 
   # Monitor probe failures that could indicate tampering
@@ -89,3 +93,7 @@ spec:
          - Consider temporary isolation if suspicious
          - Document findings for security review
          - Recommend security assessment if needed
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.

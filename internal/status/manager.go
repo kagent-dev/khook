@@ -10,10 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/kagent/hook-controller/api/v1alpha2"
-	"github.com/kagent/hook-controller/internal/interfaces"
-	"github.com/kagent/hook-controller/internal/logging"
+	"github.com/antweiss/khook/api/v1alpha2"
+	"github.com/antweiss/khook/internal/interfaces"
 )
 
 // Manager handles status updates for Hook resources
@@ -28,7 +28,7 @@ func NewManager(client client.Client, recorder record.EventRecorder) *Manager {
 	return &Manager{
 		client:   client,
 		recorder: recorder,
-		logger:   logging.NewLogger("status-manager"),
+		logger:   log.Log.WithName("status-manager"),
 	}
 }
 

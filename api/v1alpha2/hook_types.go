@@ -49,6 +49,110 @@ type HookStatus struct {
 	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
 }
 
+// Validate validates the Hook resource
+func (h *Hook) Validate() error {
+	if h.Spec.EventConfigurations == nil || len(h.Spec.EventConfigurations) == 0 {
+		return fmt.Errorf("at least one event configuration is required")
+	}
+
+	if len(h.Spec.EventConfigurations) > 50 {
+		return fmt.Errorf("too many event configurations: %d (max 50)", len(h.Spec.EventConfigurations))
+	}
+
+	for i, config := range h.Spec.EventConfigurations {
+		if err := h.validateEventConfiguration(config, i); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateEventConfiguration validates a single event configuration
+func (h *Hook) validateEventConfiguration(config EventConfiguration, index int) error {
+	// Validate EventType
+	validEventTypes := map[string]bool{
+		"pod-restart":  true,
+		"pod-pending":  true,
+		"oom-kill":     true,
+		"probe-failed": true,
+	}
+
+	if !validEventTypes[config.EventType] {
+		return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed", index, config.EventType)
+	}
+
+	// Validate AgentId
+	if strings.TrimSpace(config.AgentId) == "" {
+		return fmt.Errorf("event configuration %d: agentId cannot be empty", index)
+	}
+
+	if len(config.AgentId) > 100 {
+		return fmt.Errorf("event configuration %d: agentId too long: %d characters (max 100)", index, len(config.AgentId))
+	}
+
+	// Validate agent ID format (alphanumeric, hyphens, underscores only)
+	for _, r := range config.AgentId {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
+			return fmt.Errorf("event configuration %d: agentId contains invalid character '%c', only alphanumeric, hyphens, and underscores allowed", index, r)
+		}
+	}
+
+	// Validate Prompt
+	if strings.TrimSpace(config.Prompt) == "" {
+		return fmt.Errorf("event configuration %d: prompt cannot be empty", index)
+	}
+
+	if len(config.Prompt) > 10000 {
+		return fmt.Errorf("event configuration %d: prompt too long: %d characters (max 10000)", index, len(config.Prompt))
+	}
+
+	// Validate template constructs
+	if err := h.validatePromptTemplate(config.Prompt, index); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validatePromptTemplate validates the prompt template for security and correctness
+func (h *Hook) validatePromptTemplate(prompt string, index int) error {
+	if prompt == "" {
+		return fmt.Errorf("event configuration %d: prompt cannot be empty", index)
+	}
+
+	// Check for balanced brackets
+	openCount := strings.Count(prompt, "{{")
+	closeCount := strings.Count(prompt, "}}")
+
+	if openCount != closeCount {
+		return fmt.Errorf("event configuration %d: prompt has unmatched template brackets: %d opens, %d closes", index, openCount, closeCount)
+	}
+
+	// Check for potentially dangerous template constructs
+	dangerousPatterns := []string{
+		"{{/*",       // block comments
+		"{{define",   // template definitions
+		"{{template", // template calls
+		"{{call",     // function calls
+		"{{data",     // data access
+		"{{urlquery", // URL encoding functions
+		"{{print",    // print functions
+		"{{printf",   // printf functions
+		"{{println",  // println functions
+		"{{js",       // JavaScript execution
+		"{{html",     // HTML escaping (could be abused)
+	}
+
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(prompt, pattern) {
+			return fmt.Errorf("event configuration %d: prompt contains potentially dangerous template construct: %s", index, pattern)
+		}
+	}
+
+	return nil
+}
+
 // ActiveEventStatus represents the status of an active event
 type ActiveEventStatus struct {
 	// EventType is the type of the active event

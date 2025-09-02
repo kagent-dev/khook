@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kagent/hook-controller/api/v1alpha2"
-	"github.com/kagent/hook-controller/internal/interfaces"
+	"github.com/antweiss/khook/api/v1alpha2"
+	"github.com/antweiss/khook/internal/interfaces"
 )
 
 // Mock implementations for testing
@@ -19,8 +19,8 @@ type MockEventWatcher struct {
 	mock.Mock
 }
 
-func (m *MockEventWatcher) WatchEvents(ctx context.Context, eventTypes []string) (<-chan interfaces.Event, error) {
-	args := m.Called(ctx, eventTypes)
+func (m *MockEventWatcher) WatchEvents(ctx context.Context) (<-chan interfaces.Event, error) {
+	args := m.Called(ctx)
 	return args.Get(0).(<-chan interfaces.Event), args.Error(1)
 }
 
@@ -59,6 +59,11 @@ func (m *MockDeduplicationManager) CleanupExpiredEvents(hookName string) error {
 }
 
 func (m *MockDeduplicationManager) GetActiveEvents(hookName string) []interfaces.ActiveEvent {
+	args := m.Called(hookName)
+	return args.Get(0).([]interfaces.ActiveEvent)
+}
+
+func (m *MockDeduplicationManager) GetActiveEventsWithStatus(hookName string) []interfaces.ActiveEvent {
 	args := m.Called(hookName)
 	return args.Get(0).([]interfaces.ActiveEvent)
 }
@@ -207,6 +212,7 @@ func TestProcessor_ProcessEvent_Success(t *testing.T) {
 	})).Return(expectedResponse, nil)
 
 	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook, event, "test-agent", "test-request-id").Return(nil)
+	mockDeduplicationManager.On("MarkNotified", "default/test-hook", event).Return()
 
 	// Execute
 	err := processor.ProcessEvent(ctx, event, hooks)
@@ -351,6 +357,8 @@ func TestProcessor_ProcessEvent_MultipleHooks(t *testing.T) {
 
 	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook1, event, "agent1", "req1").Return(nil)
 	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook2, event, "agent2", "req2").Return(nil)
+	mockDeduplicationManager.On("MarkNotified", "default/hook1", event).Return()
+	mockDeduplicationManager.On("MarkNotified", "default/hook2", event).Return()
 
 	// Execute
 	err := processor.ProcessEvent(ctx, event, hooks)
@@ -442,7 +450,7 @@ func TestProcessor_UpdateHookStatuses(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup expectations
-	mockDeduplicationManager.On("GetActiveEvents", "default/test-hook").Return(activeEvents)
+	mockDeduplicationManager.On("GetActiveEventsWithStatus", "default/test-hook").Return(activeEvents)
 	mockStatusManager.On("UpdateHookStatus", ctx, hook, activeEvents).Return(nil)
 
 	// Execute

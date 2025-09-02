@@ -34,6 +34,10 @@ spec:
       - Resource limits (CPU/memory)
       - Health check failures
       - Configuration problems
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
 
   # Monitor OOM kills
   - eventType: oom-kill
@@ -59,3 +63,7 @@ spec:
       - Inefficient data structures or algorithms
       - Large object allocations
       - Garbage collection issues
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.

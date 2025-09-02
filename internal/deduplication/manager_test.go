@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kagent/hook-controller/internal/interfaces"
+	"github.com/antweiss/khook/internal/interfaces"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -283,8 +283,8 @@ func TestGetActiveEvents_WithExpiredEvents(t *testing.T) {
 	oldKey := manager.eventKey(oldEvent)
 	hookEventMap[oldKey].FirstSeen = time.Now().Add(-EventTimeoutDuration - time.Minute)
 
-	// Get active events (should mark old event as resolved)
-	activeEvents := manager.GetActiveEvents("test-hook")
+	// Get active events with status (should mark old event as resolved)
+	activeEvents := manager.GetActiveEventsWithStatus("test-hook")
 	assert.Equal(t, 2, len(activeEvents))
 
 	// Find the events and check their status

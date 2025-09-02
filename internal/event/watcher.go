@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/kagent/hook-controller/internal/interfaces"
+	"github.com/antweiss/khook/internal/interfaces"
 )
 
 // Watcher implements the EventWatcher interface
@@ -28,10 +28,34 @@ type Watcher struct {
 
 // NewWatcher creates a new EventWatcher instance
 func NewWatcher(client kubernetes.Interface, namespace string) interfaces.EventWatcher {
+	// Validate inputs
+	if client == nil {
+		panic("kubernetes client cannot be nil")
+	}
+
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	if len(namespace) > 63 {
+		panic(fmt.Sprintf("namespace name too long: %d characters (max 63)", len(namespace)))
+	}
+
+	// Basic namespace name validation (Kubernetes naming rules)
+	for _, r := range namespace {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-') {
+			panic(fmt.Sprintf("namespace name contains invalid character '%c', only lowercase alphanumeric and hyphens allowed", r))
+		}
+	}
+
+	if namespace[0] == '-' || namespace[len(namespace)-1] == '-' {
+		panic("namespace name cannot start or end with a hyphen")
+	}
+
 	return &Watcher{
 		client:    client,
 		namespace: namespace,
-		logger:    log.Log.WithName("event-watcher"),
+		logger:    log.Log.WithName("event-watcher").WithValues("namespace", namespace),
 		stopCh:    make(chan struct{}),
 		eventCh:   make(chan interfaces.Event, 100),
 	}
@@ -149,54 +173,14 @@ func (w *Watcher) Stop() error {
 	return nil
 }
 
-// WatchEvents returns a channel of events that match the specified types
-func (w *Watcher) WatchEvents(ctx context.Context, eventTypes []string) (<-chan interfaces.Event, error) {
+// WatchEvents returns a channel of all events (filtering is done by the processor)
+func (w *Watcher) WatchEvents(ctx context.Context) (<-chan interfaces.Event, error) {
 	if err := w.Start(ctx); err != nil {
 		return nil, err
 	}
 
-	// Create a filtered channel that only sends events matching the specified types
-	filteredCh := make(chan interfaces.Event, 100)
-
-	w.logger.Info("Starting filtered event stream", "watchTypes", eventTypes)
-	go func() {
-		defer close(filteredCh)
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case event, ok := <-w.eventCh:
-				if !ok {
-					return
-				}
-
-				// Check if this event type is in our watch list
-				for _, eventType := range eventTypes {
-					if event.Type == eventType {
-						w.logger.V(1).Info("Event matches filter",
-							"eventType", event.Type,
-							"resource", event.ResourceName,
-							"reason", event.Reason)
-						select {
-						case filteredCh <- event:
-						case <-ctx.Done():
-							return
-						}
-						break
-					} else {
-						w.logger.V(3).Info("Event does not match filter",
-							"wanted", eventType,
-							"got", event.Type,
-							"resource", event.ResourceName,
-							"reason", event.Reason)
-					}
-				}
-			}
-		}
-	}()
-
-	return filteredCh, nil
+	w.logger.Info("Starting event stream")
+	return w.eventCh, nil
 }
 
 // FilterEvent matches an event against hook configurations and returns matches

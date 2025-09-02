@@ -1,4 +1,4 @@
-# Values for kagent-hook-crds
+# Values for khook-crds
 crds:
   createNamespace: false
   namespace: kagent

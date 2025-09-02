@@ -1,4 +1,4 @@
-# Default values for kagent-hook-controller
+# Default values for khook-controller
 replicaCount: 1
 
 image:
@@ -24,7 +24,7 @@ controller:
   logFormat: "json"
   leaderElection:
     enabled: true
-    resourceName: "kagent-hook-controller-leader-election"
+    resourceName: "khook-controller-leader-election"
   deduplication:
     timeoutMinutes: 10
     cleanupIntervalMinutes: 5

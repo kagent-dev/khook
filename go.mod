@@ -1,4 +1,4 @@
-module github.com/kagent/hook-controller
+module github.com/antweiss/khook
 
 go 1.24.6
 

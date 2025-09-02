@@ -1,16 +1,18 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/kagent/hook-controller/api/v1alpha2"
-	"github.com/kagent/hook-controller/internal/interfaces"
+	"github.com/antweiss/khook/api/v1alpha2"
+	"github.com/antweiss/khook/internal/interfaces"
 )
 
 // Processor handles the complete event processing pipeline
@@ -188,9 +190,77 @@ func (p *Processor) createAgentRequest(match EventMatch) interfaces.AgentRequest
 	}
 }
 
-// expandPromptTemplate expands template variables in the prompt
-func (p *Processor) expandPromptTemplate(template string, event interfaces.Event) string {
-	// Simple template expansion - replace common placeholders
+// expandPromptTemplate expands template variables in the prompt using Go's text/template
+func (p *Processor) expandPromptTemplate(templateStr string, event interfaces.Event) string {
+	// Validate template for security
+	if err := p.validateTemplate(templateStr); err != nil {
+		p.logger.Error(err, "Template validation failed, using original template",
+			"template", templateStr,
+			"eventType", event.Type)
+		return templateStr
+	}
+
+	// First, try to expand known placeholders using the original manual method
+	// This ensures backward compatibility for unknown placeholders
+	result := p.expandKnownPlaceholders(templateStr, event)
+
+	// Check if there are still unexpanded template placeholders
+	// If so, skip text/template processing to maintain backward compatibility
+	if strings.Contains(result, "{{") && strings.Contains(result, "}}") {
+		p.logger.V(2).Info("Template contains unknown placeholders, skipping advanced processing",
+			"template", result)
+		return result
+	}
+
+	// Then try to use text/template for more advanced templating
+	// This allows for complex template expressions while maintaining backward compatibility
+	result = p.expandWithTextTemplate(result, event)
+
+	return result
+}
+
+// validateTemplate performs security validation on template strings
+func (p *Processor) validateTemplate(templateStr string) error {
+	if templateStr == "" {
+		return fmt.Errorf("template cannot be empty")
+	}
+
+	if len(templateStr) > 10000 {
+		return fmt.Errorf("template too long: %d characters (max 10000)", len(templateStr))
+	}
+
+	// Check for potentially dangerous template constructs
+	dangerousPatterns := []string{
+		"{{/*",       // block comments that might hide malicious code
+		"{{define",   // template definitions
+		"{{template", // template calls
+		"{{call",     // function calls
+		"{{data",     // data access
+		"{{urlquery", // URL encoding
+		"{{print",    // print function
+		"{{printf",   // printf function
+		"{{println",  // println function
+	}
+
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(templateStr, pattern) {
+			return fmt.Errorf("template contains potentially dangerous construct: %s", pattern)
+		}
+	}
+
+	// Validate bracket matching
+	openCount := strings.Count(templateStr, "{{")
+	closeCount := strings.Count(templateStr, "}}")
+
+	if openCount != closeCount {
+		return fmt.Errorf("template has unmatched brackets: %d opens, %d closes", openCount, closeCount)
+	}
+
+	return nil
+}
+
+// expandKnownPlaceholders handles the original manual placeholder replacement
+func (p *Processor) expandKnownPlaceholders(template string, event interfaces.Event) string {
 	expanded := template
 
 	replacements := map[string]string{
@@ -211,6 +281,48 @@ func (p *Processor) expandPromptTemplate(template string, event interfaces.Event
 	return expanded
 }
 
+// expandWithTextTemplate attempts to use text/template for advanced features
+func (p *Processor) expandWithTextTemplate(templateStr string, event interfaces.Event) string {
+	// Create template data for advanced templating
+	templateData := map[string]interface{}{
+		"EventType":    event.Type,
+		"ResourceName": event.ResourceName,
+		"Namespace":    event.Namespace,
+		"Reason":       event.Reason,
+		"Message":      event.Message,
+		"Timestamp":    event.Timestamp.Format(time.RFC3339),
+		"EventTime":    event.Timestamp.Format(time.RFC3339),
+		"EventMessage": event.Message,
+		"Event":        event, // Full event access for advanced templating
+	}
+
+	// Try to parse and execute the template
+	tmpl, err := template.New("prompt").Parse(templateStr)
+	if err != nil {
+		// If parsing fails, return the original string (likely already processed)
+		p.logger.V(3).Info("Template parsing failed, using already expanded template",
+			"template", templateStr,
+			"error", err.Error())
+		return templateStr
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, templateData); err != nil {
+		// If execution fails, return the original string
+		p.logger.V(3).Info("Template execution failed, using already expanded template",
+			"template", templateStr,
+			"error", err.Error())
+		return templateStr
+	}
+
+	result := buf.String()
+	p.logger.V(2).Info("Advanced template expansion completed",
+		"originalLength", len(templateStr),
+		"expandedLength", len(result))
+
+	return result
+}
+
 // UpdateHookStatuses updates the status of all hooks with their current active events
 func (p *Processor) UpdateHookStatuses(ctx context.Context, hooks []*v1alpha2.Hook) error {
 	p.logger.Info("Updating hook statuses", "hookCount", len(hooks))
@@ -218,8 +330,8 @@ func (p *Processor) UpdateHookStatuses(ctx context.Context, hooks []*v1alpha2.Ho
 	for _, hook := range hooks {
 		hookName := fmt.Sprintf("%s/%s", hook.Namespace, hook.Name)
 
-		// Get active events for this hook
-		activeEvents := p.deduplicationManager.GetActiveEvents(hookName)
+		// Get active events for this hook with current status
+		activeEvents := p.deduplicationManager.GetActiveEventsWithStatus(hookName)
 
 		// Update the hook status
 		if err := p.statusManager.UpdateHookStatus(ctx, hook, activeEvents); err != nil {
@@ -259,8 +371,8 @@ func (p *Processor) ProcessEventWorkflow(ctx context.Context, eventTypes []strin
 		"eventTypes", eventTypes,
 		"hookCount", len(hooks))
 
-	// Start watching for events
-	eventCh, err := p.eventWatcher.WatchEvents(ctx, eventTypes)
+	// Start watching for events (filtering is done by the processor)
+	eventCh, err := p.eventWatcher.WatchEvents(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to start event watching: %w", err)
 	}

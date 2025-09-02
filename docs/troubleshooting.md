@@ -8,10 +8,10 @@ This guide helps you diagnose and resolve common issues with the KAgent Hook Con
 
 ```bash
 # Check if controller is running
-kubectl get pods -n kagent-system -l app=khook
+kubectl get pods -n kagent -l app=khook
 
 # Check controller logs
-kubectl logs -n kagent-system deployment/khook --tail=100
+kubectl logs -n kagent deployment/khook --tail=100
 
 # Check hook resources
 kubectl get hooks -A
@@ -27,7 +27,7 @@ kubectl get secret kagent-credentials -o yaml
 kubectl get crd hooks.kagent.dev
 
 # Check RBAC permissions
-kubectl auth can-i get events --as=system:serviceaccount:kagent-system:khook
+kubectl auth can-i get events --as=system:serviceaccount:kagent:khook
 ```
 
 ## Common Issues
@@ -50,7 +50,7 @@ kubectl get events --field-selector involvedObject.kind=Pod --sort-by='.lastTime
 kubectl describe hook your-hook-name
 
 # Check controller logs for event processing
-kubectl logs -n kagent-system deployment/khook | grep "event-processing"
+kubectl logs -n kagent deployment/khook | grep "event-processing"
 ```
 
 **Common Causes & Solutions:**
@@ -58,7 +58,7 @@ kubectl logs -n kagent-system deployment/khook | grep "event-processing"
 1. **Controller not watching the namespace:**
    ```bash
    # Check if controller has RBAC permissions for the namespace
-   kubectl auth can-i get events --namespace=your-namespace --as=system:serviceaccount:kagent-system:khook
+   kubectl auth can-i get events --namespace=your-namespace --as=system:serviceaccount:kagent:khook
    ```
 
 2. **Event type mismatch:**
@@ -83,11 +83,11 @@ kubectl logs -n kagent-system deployment/khook | grep "event-processing"
 kubectl get secret kagent-credentials -o jsonpath='{.data.api-key}' | base64 -d
 
 # Test API connectivity
-kubectl exec -n kagent-system deployment/khook -- \
+kubectl exec -n kagent deployment/khook -- \
   curl -v -H "Authorization: Bearer $KAGENT_API_KEY" $KAGENT_BASE_URL/health
 
 # Check controller logs for API errors
-kubectl logs -n kagent-system deployment/khook | grep "kagent-api"
+kubectl logs -n kagent deployment/khook | grep "kagent-api"
 ```**Common 
 Causes & Solutions:**
 
@@ -100,13 +100,13 @@ Causes & Solutions:**
      --dry-run=client -o yaml | kubectl apply -f -
    
    # Restart controller to pick up new credentials
-   kubectl rollout restart deployment/khook -n kagent-system
+   kubectl rollout restart deployment/khook -n kagent
    ```
 
 2. **Network connectivity issues:**
    ```bash
    # Check DNS resolution
-   kubectl exec -n kagent-system deployment/khook -- nslookup api.kagent.dev
+   kubectl exec -n kagent deployment/khook -- nslookup api.kagent.dev
    
    # Check firewall/network policies
    kubectl get networkpolicies -A
@@ -131,10 +131,10 @@ Causes & Solutions:**
 kubectl get hook your-hook-name -o jsonpath='{.status.activeEvents}' | jq .
 
 # Check controller restart count
-kubectl get pods -n kagent-system -l app=khook
+kubectl get pods -n kagent -l app=khook
 
 # Verify leader election is working
-kubectl logs -n kagent-system deployment/khook | grep "leader"
+kubectl logs -n kagent deployment/khook | grep "leader"
 ```
 
 **Common Causes & Solutions:**
@@ -142,25 +142,25 @@ kubectl logs -n kagent-system deployment/khook | grep "leader"
 1. **Controller restarts causing memory loss:**
    ```bash
    # Check for frequent restarts
-   kubectl describe pod -n kagent-system -l app=khook
+   kubectl describe pod -n kagent -l app=khook
    
    # Increase memory limits if needed
-   kubectl patch deployment khook -n kagent-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
+   kubectl patch deployment khook -n kagent -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
    ```
 
 2. **Multiple controller instances without leader election:**
    ```bash
    # Ensure only one controller is leader
-   kubectl logs -n kagent-system deployment/khook | grep "successfully acquired lease"
+   kubectl logs -n kagent deployment/khook | grep "successfully acquired lease"
    
    # Check replica count
-   kubectl get deployment khook -n kagent-system
+   kubectl get deployment khook -n kagent
    ```
 
 3. **Clock skew issues:**
    ```bash
    # Check system time on controller
-   kubectl exec -n kagent-system deployment/kagent-hook-controller -- date
+   kubectl exec -n kagent deployment/khook-controller -- date
    
    # Compare with cluster time
    kubectl get nodes -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].lastTransitionTime}'
@@ -177,20 +177,20 @@ kubectl logs -n kagent-system deployment/khook | grep "leader"
 
 ```bash
 # Monitor memory usage
-kubectl top pod -n kagent-system -l app=kagent-hook-controller
+kubectl top pod -n kagent -l app=khook-controller
 
 # Check active events across all hooks
 kubectl get hooks -A -o jsonpath='{range .items[*]}{.metadata.name}: {.status.activeEvents}{"\n"}{end}'
 
 # Check for memory leaks in logs
-kubectl logs -n kagent-system deployment/kagent-hook-controller | grep -i "memory\|leak\|gc"
+kubectl logs -n kagent deployment/khook-controller | grep -i "memory\|leak\|gc"
 ```
 
 **Solutions:**
 
 1. **Increase resource limits:**
    ```bash
-   kubectl patch deployment kagent-hook-controller -n kagent-system -p '{
+   kubectl patch deployment khook-controller -n kagent -p '{
      "spec": {
        "template": {
          "spec": {
@@ -210,7 +210,7 @@ kubectl logs -n kagent-system deployment/kagent-hook-controller | grep -i "memor
 2. **Clean up stale events:**
    ```bash
    # Restart controller to clean up memory
-   kubectl rollout restart deployment/kagent-hook-controller -n kagent-system
+   kubectl rollout restart deployment/khook-controller -n kagent
    ```
 
 ### 5. Permission Denied Errors
@@ -224,12 +224,12 @@ kubectl logs -n kagent-system deployment/kagent-hook-controller | grep -i "memor
 
 ```bash
 # Check current permissions
-kubectl auth can-i get events --as=system:serviceaccount:kagent-system:kagent-hook-controller
-kubectl auth can-i update hooks --as=system:serviceaccount:kagent-system:kagent-hook-controller
+kubectl auth can-i get events --as=system:serviceaccount:kagent:khook-controller
+kubectl auth can-i update hooks --as=system:serviceaccount:kagent:khook-controller
 
 # Verify ClusterRole and ClusterRoleBinding
-kubectl get clusterrole kagent-hook-controller -o yaml
-kubectl get clusterrolebinding kagent-hook-controller -o yaml
+kubectl get clusterrole khook-controller -o yaml
+kubectl get clusterrolebinding khook-controller -o yaml
 ```
 
 **Solutions:**
@@ -241,7 +241,7 @@ kubectl get clusterrolebinding kagent-hook-controller -o yaml
 
 2. **Verify service account:**
    ```bash
-   kubectl get serviceaccount kagent-hook-controller -n kagent-system
+   kubectl get serviceaccount khook-controller -n kagent
    ```
 
 ## Debug Mode
@@ -250,10 +250,10 @@ Enable debug logging for detailed troubleshooting:
 
 ```bash
 # Enable debug logging
-kubectl set env deployment/kagent-hook-controller -n kagent-system LOG_LEVEL=debug
+kubectl set env deployment/kagent-hook-controller -n kagent LOG_LEVEL=debug
 
 # Watch debug logs
-kubectl logs -n kagent-system deployment/kagent-hook-controller -f | grep DEBUG
+kubectl logs -n kagent deployment/khook-controller -f | grep DEBUG
 ```
 
 ## Performance Issues
@@ -268,7 +268,7 @@ kubectl logs -n kagent-system deployment/kagent-hook-controller -f | grep DEBUG
 
 1. **Increase controller resources:**
    ```bash
-   kubectl patch deployment kagent-hook-controller -n kagent-system -p '{
+   kubectl patch deployment khook-controller -n kagent -p '{
      "spec": {
        "template": {
          "spec": {
@@ -316,7 +316,7 @@ Collect comprehensive logs for support:
 
 ```bash
 # Controller logs
-kubectl logs -n kagent-system deployment/kagent-hook-controller --previous > controller-logs.txt
+kubectl logs -n kagent deployment/khook-controller --previous > controller-logs.txt
 
 # Hook status
 kubectl get hooks -A -o yaml > hooks-status.yaml

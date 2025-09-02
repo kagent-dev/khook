@@ -103,7 +103,7 @@ type ControllerManager interface {
 
 ```go
 type EventWatcher interface {
-    WatchEvents(ctx context.Context, eventTypes []string) (<-chan Event, error)
+    WatchEvents(ctx context.Context) (<-chan Event, error)
     FilterEvent(event Event, hooks []Hook) []EventMatch
 }
 

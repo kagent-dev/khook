@@ -56,6 +56,10 @@ spec:
          - Performance benchmarking suggestions
          - SLA impact assessment
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Provide specific, actionable recommendations for immediate and long-term optimization.
 
   # Monitor pod pending for resource allocation issues
@@ -102,6 +106,10 @@ spec:
          - Reserved capacity recommendations
          - Multi-zone distribution optimization
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Focus on both immediate resolution and long-term capacity strategy.
 
   # Monitor restarts for performance degradation patterns
@@ -147,5 +155,9 @@ spec:
          - Graceful degradation strategies
          - Health check optimization
          - Disaster recovery and failover improvements
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
       
       Provide both immediate fixes and strategic reliability enhancements.

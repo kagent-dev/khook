@@ -14,8 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/kagent/hook-controller/api/v1alpha2"
-	"github.com/kagent/hook-controller/internal/interfaces"
+	"github.com/antweiss/khook/api/v1alpha2"
+	"github.com/antweiss/khook/internal/interfaces"
 )
 
 func TestNewManager(t *testing.T) {

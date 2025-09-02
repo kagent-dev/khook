@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: kagent-system
+  name: kagent
   labels:
     app.kubernetes.io/name: kagent-hook-controller
     app.kubernetes.io/instance: system

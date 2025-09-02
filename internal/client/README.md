@@ -27,11 +27,11 @@ import (
 
     "github.com/kagent/hook-controller/internal/client"
     "github.com/kagent/hook-controller/internal/interfaces"
-    "github.com/kagent/hook-controller/internal/logging"
+    "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func main() {
-    logger := logging.NewLogger("main")
+    logger := log.Log.WithName("main")
     
     // Create client with custom configuration
     config := &client.Config{

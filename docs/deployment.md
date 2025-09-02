@@ -29,11 +29,11 @@ cd khook
 kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
 
 # Install CRDs first
-helm install kagent-hook-crds ./charts/kagent-hook-crds \
+helm install khook-crds ./charts/kagent-hook-crds \
   --namespace kagent \
 
 # Install controller
-helm install khook ./charts/kagent-hook-controller \
+helm install khook ./charts/khook-controller \
   --namespace kagent \
   --create-namespace
 ```
@@ -107,7 +107,7 @@ kubectl apply -f config/default/configmap.yaml
 # Create Secret with your API token
 kubectl create secret generic kagent-credentials \
   --from-literal=api-token="your-kagent-api-token" \
-  -n kagent-system
+  -n kagent
 ```
 
 #### 5. Deploy Controller
@@ -139,7 +139,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: manager-config
-  namespace: kagent-system
+  namespace: kagent
 data:
   kagent-api-url: "https://api.kagent.dev"
   log-level: "info"
@@ -223,7 +223,7 @@ make deploy
 git pull origin main
 
 # Upgrade release
-helm upgrade khook ./charts/kagent-hook-controller \
+helm upgrade khook ./charts/khook-controller \
   --namespace kagent
 ```
 
@@ -286,5 +286,5 @@ kubectl delete namespace kagent
 kubectl delete -f config/manager/
 kubectl delete -f config/rbac/
 kubectl delete -f config/crd/bases/
-kubectl delete namespace kagent-system
+kubectl delete namespace kagent
 ```

@@ -1,5 +1,7 @@
+# khook
+
 <p align="center">
- <img src="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
+  <img src="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
 </p>
 
 A Kubernetes controller that enables automated responses to Kubernetes events by integrating with the [Kagent](https://kagent.dev) platform.
@@ -66,11 +68,11 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    git clone https://github.com/antweiss/khook.git
    cd khook
    # Install CRDs first
-   helm install kagent-hook-crds ./charts/kagent-hook-crds \
+   helm install khook-crds ./charts/khook-crds \
      --namespace kagent \
      --create-namespace
    # Install controller
-   helm install khook ./charts/kagent-hook-controller \
+   helm install khook ./charts/khook-controller \
      --namespace kagent \
      --create-namespace
    ```
@@ -79,10 +81,10 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    ```bash
    TMP_DIR="$(mktemp -d)" && \
      git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
-     helm install kagent-hook-crds "$TMP_DIR/khook/charts/kagent-hook-crds" \
+     helm install khook-crds "$TMP_DIR/khook/charts/khook-crds" \
        --namespace kagent \
        --create-namespace && \
-     helm install khook "$TMP_DIR/khook/charts/kagent-hook-controller" \
+     helm install khook "$TMP_DIR/khook/charts/khook-controller" \
        --namespace kagent \
        --create-namespace && \
      rm -rf "$TMP_DIR"
@@ -175,11 +177,19 @@ spec:
     prompt: |
       A pod named {{.ResourceName}} has restarted at {{.EventTime}}.
       Please analyze the restart reason and remediate in a fully autonomous matter. Use all available tools. Don't ask for approval.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
   - eventType: oom-kill
     agentId: memory-optimizer
     prompt: |
       Pod {{.ResourceName}} was killed due to OOM at {{.EventTime}}.
       Please analyze memory usage and resolve in a fully autonomous matter. Use all available tools. Don't ask for approval.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
 ```
 
 ### Production Monitoring with Multiple Event Types
@@ -199,21 +209,37 @@ spec:
     prompt: |
       PRODUCTION ALERT: Pod {{.ResourceName}} restarted at {{.EventTime}}.
       Priority: HIGH. Please investigate immediately and provide incident response plan.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
   - eventType: pod-pending
     agentId: scheduling-analyzer
     prompt: |
       Pod {{.ResourceName}} is pending since {{.EventTime}}.
       Please analyze scheduling constraints and resource availability.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
   - eventType: probe-failed
     agentId: health-checker
     prompt: |
       Health probe failed for {{.ResourceName}} at {{.EventTime}}.
       Please check application health and configuration.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
   - eventType: oom-kill
     agentId: capacity-planner
     prompt: |
       CRITICAL: OOM kill for {{.ResourceName}} at {{.EventTime}}.
       Please analyze resource usage and update capacity planning.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
 ```
 
 ### Development Environment Monitoring
@@ -233,6 +259,10 @@ spec:
     prompt: |
       Dev pod {{.ResourceName}} restarted. 
       Please provide quick debugging tips and common solutions.
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
 ```
 
 ## Kagent API Integration
@@ -314,10 +344,10 @@ kubectl get events --field-selector involvedObject.kind=Hook
 
 The controller exposes Prometheus metrics on port 8080:
 
-- `kagent_hook_events_total`: Total number of events processed
-- `kagent_hook_api_calls_total`: Total number of Kagent API calls
-- `kagent_hook_api_call_duration_seconds`: API call duration histogram
-- `kagent_hook_active_events`: Number of currently active events
+- `khook_events_total`: Total number of events processed
+- `khook_api_calls_total`: Total number of Kagent API calls
+- `khook_api_call_duration_seconds`: API call duration histogram
+- `khook_active_events`: Number of currently active events
 
 ### Health Checks
 
@@ -342,10 +372,10 @@ Health check endpoints are available on port 8081:
 **Solutions**:
 ```bash
 # Check controller logs
-kubectl logs -n kagent-system deployment/kagent-hook-controller
+kubectl logs -n kagent deployment/khook-controller
 
 # Verify RBAC permissions
-kubectl auth can-i get events --as=system:serviceaccount:kagent-system:kagent-hook-controller
+kubectl auth can-i get events --as=system:serviceaccount:kagent:khook-controller
 
 # Check hook status
 kubectl describe hook your-hook-name
@@ -366,11 +396,11 @@ kubectl describe hook your-hook-name
 kubectl get secret kagent-credentials -o yaml
 
 # Test API connectivity from controller pod
-kubectl exec -n kagent-system deployment/kagent-hook-controller -- \
+kubectl exec -n kagent deployment/khook-controller -- \
   curl -H "Authorization: Bearer $KAGENT_API_KEY" $KAGENT_BASE_URL/health
 
 # Check controller logs for API errors
-kubectl logs -n kagent-system deployment/kagent-hook-controller | grep "kagent-api"
+kubectl logs -n kagent deployment/khook-controller | grep "kagent-api"
 ```
 
 #### Events Not Being Deduplicated
@@ -385,13 +415,13 @@ kubectl logs -n kagent-system deployment/kagent-hook-controller | grep "kagent-a
 **Solutions**:
 ```bash
 # Check controller restart count
-kubectl get pods -n kagent-system
+kubectl get pods -n kagent
 
 # Verify leader election is working
-kubectl logs -n kagent-system deployment/kagent-hook-controller | grep "leader"
+kubectl logs -n kagent deployment/khook-controller | grep "leader"
 
 # Check system time synchronization
-kubectl exec -n kagent-system deployment/kagent-hook-controller -- date
+kubectl exec -n kagent deployment/khook-controller -- date
 ```
 
 #### High Memory Usage
@@ -409,10 +439,10 @@ kubectl exec -n kagent-system deployment/kagent-hook-controller -- date
 kubectl get hooks -A -o jsonpath='{range .items[*]}{.metadata.name}: {.status.activeEvents}{"\n"}{end}'
 
 # Monitor memory usage
-kubectl top pod -n kagent-system
+kubectl top pod -n kagent
 
 # Adjust resource limits
-kubectl patch deployment -n kagent-system kagent-hook-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
+kubectl patch deployment -n kagent khook-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
 ```
 
 ### Debug Mode
@@ -420,14 +450,14 @@ kubectl patch deployment -n kagent-system kagent-hook-controller -p '{"spec":{"t
 Enable debug logging for detailed troubleshooting:
 
 ```bash
-kubectl set env deployment/kagent-hook-controller -n kagent-system LOG_LEVEL=debug
+kubectl set env deployment/khook-controller -n kagent LOG_LEVEL=debug
 ```
 
 ### Support
 
 For additional support:
 
-1. Check the [GitHub Issues](https://github.com/kagent-dev/kagent-hook-controller/issues)
+1. Check the [GitHub Issues](https://github.com/antweiss/khook/issues)
 2. Review the [troubleshooting guide](docs/troubleshooting.md)
 3. Join the [Kagent community](https://community.kagent.dev)
 
@@ -444,8 +474,8 @@ For additional support:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/kagent-dev/kagent-hook-controller.git
-   cd kagent-hook-controller
+   git clone https://github.com/antweiss/khook.git
+   cd khook
    ```
 
 2. **Install dependencies**:

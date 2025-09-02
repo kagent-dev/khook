@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/kagent/hook-controller/api/v1alpha2"
+	"github.com/antweiss/khook/api/v1alpha2"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ControllerManager orchestrates the controller lifecycle and watches
@@ -36,7 +37,7 @@ type EventMatch struct {
 
 // EventWatcher monitors Kubernetes events and filters them against hook configurations
 type EventWatcher interface {
-	WatchEvents(ctx context.Context, eventTypes []string) (<-chan Event, error)
+	WatchEvents(ctx context.Context) (<-chan Event, error)
 	FilterEvent(event Event, hooks []interface{}) []EventMatch
 	Start(ctx context.Context) error
 	Stop() error
@@ -82,7 +83,15 @@ type DeduplicationManager interface {
 	RecordEvent(hookName string, event Event) error
 	CleanupExpiredEvents(hookName string) error
 	GetActiveEvents(hookName string) []ActiveEvent
+	GetActiveEventsWithStatus(hookName string) []ActiveEvent
 	MarkNotified(hookName string, event Event)
+}
+
+// EventRecorder handles Kubernetes event recording
+type EventRecorder interface {
+	Event(object runtime.Object, eventtype, reason, message string)
+	Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...interface{})
+	AnnotatedEventf(object runtime.Object, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{})
 }
 
 // StatusManager handles status updates and event recording for Hook resources

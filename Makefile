@@ -111,23 +111,23 @@ kustomize-build: ## Build kustomized manifests.
 
 .PHONY: helm-lint
 helm-lint: ## Lint Helm chart.
-	helm lint charts/kagent-hook-controller
+	helm lint charts/khook-controller
 
 .PHONY: helm-template
 helm-template: ## Generate Helm templates.
-	helm template khook charts/kagent-hook-controller
+	helm template khook charts/khook-controller
 
 .PHONY: helm-install
 helm-install: ## Install Helm chart.
-	helm install khook charts/kagent-hook-controller \
-		--namespace kagent-system \
+	helm install khook charts/khook-controller \
+		--namespace kagent \
 		--create-namespace
 
 .PHONY: helm-upgrade
 helm-upgrade: ## Upgrade Helm chart.
-	helm upgrade khook charts/kagent-hook-controller \
-		--namespace kagent-system
+	helm upgrade khook charts/khook-controller \
+		--namespace kagent
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall Helm chart.
-	helm uninstall khook --namespace kagent-system
+	helm uninstall khook --namespace kagent

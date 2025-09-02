@@ -50,6 +50,10 @@ spec:
          - Monitoring enhancements
          - Process improvements
       
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      
       Escalate to on-call if this affects critical user-facing services.
 
   # Pod stuck in pending state
@@ -86,6 +90,10 @@ spec:
          - Current cluster utilization
          - Scaling recommendations
          - Resource allocation optimization
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
       
       Monitor closely and escalate if pending time exceeds SLA thresholds.
 
@@ -124,6 +132,10 @@ spec:
          - Probe configuration adjustments
          - Application fixes needed
          - Monitoring improvements
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
       
       If health checks continue failing, consider emergency procedures.
 
@@ -170,5 +182,9 @@ spec:
          - Application memory optimization
          - Architecture improvements
          - Resource management best practices
+      
+      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
       
       This is a critical production issue - escalate immediately if service is impacted.

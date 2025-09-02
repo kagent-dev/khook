@@ -18,7 +18,7 @@ The Status Manager package provides comprehensive status management and reportin
 import (
     "k8s.io/client-go/tools/record"
     "sigs.k8s.io/controller-runtime/pkg/client"
-    "github.com/kagent/hook-controller/internal/status"
+    "github.com/antweiss/khook/internal/status"
 )
 
 // Create a new status manager
