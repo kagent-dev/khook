@@ -65,7 +65,7 @@ jobs:
         mkdir -p release
         # Generate install manifest
         cat > release/install.yaml << EOF
-        # KAgent Hook Controller Installation Manifest
+        # KHook Controller Installation Manifest
         # Version: ${{ steps.tag.outputs.tag }}
         ---
         EOF

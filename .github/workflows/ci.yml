@@ -70,9 +70,9 @@ jobs:
       run: make build
 
     - name: Upload binary artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: kagent-hook-controller
+        name: khook-controller
         path: bin/manager
 
   docker:
