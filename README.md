@@ -102,10 +102,20 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
      eventConfigurations:
      - eventType: pod-restart
        agentId: incident-responder
-       prompt: "A pod has restarted. Please analyze the cause and suggest remediation steps."
+       prompt: |
+         A pod has restarted. Please analyze the restart reason and remediate in a fully autonomous manner. Use all available tools.
+
+         After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+         - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+         Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
      - eventType: oom-kill
        agentId: memory-analyzer
-       prompt: "An OOM kill occurred. Please analyze memory usage patterns and recommend optimizations."
+       prompt: |
+         An OOM kill occurred. Please analyze memory usage patterns and optimize in a fully autonomous manner. Use all available tools.
+
+         After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
+         - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
+         Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
    ```
 
 ## Supported Event Types
