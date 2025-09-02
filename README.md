@@ -103,19 +103,25 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
      - eventType: pod-restart
        agentId: incident-responder
        prompt: |
-         A pod has restarted. Please analyze the restart reason and remediate in a fully autonomous manner. Use all available tools.
+         AUTONOMOUS MODE: A pod has restarted. Analyze the cause and implement fixes immediately.
 
-         After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-         - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-         Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+         INSTRUCTIONS:
+         • Use all available tools to diagnose and resolve the issue
+         • Annotate fixed resources with: kagentFix=<timestamp>
+         • If patching fails: delete and recreate resources
+         • Never ask for permission - assume autonomous execution
+         • Complete remediation without human approval
      - eventType: oom-kill
        agentId: memory-analyzer
        prompt: |
-         An OOM kill occurred. Please analyze memory usage patterns and optimize in a fully autonomous manner. Use all available tools.
+         AUTONOMOUS MODE: OOM kill detected. Analyze memory usage and optimize immediately.
 
-         After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-         - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-         Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+         INSTRUCTIONS:
+         • Use all available tools to diagnose and resolve memory issues
+         • Annotate fixed resources with: kagentFix=<timestamp>
+         • If patching fails: delete and recreate resources
+         • Never ask for permission - assume autonomous execution
+         • Complete remediation without human approval
    ```
 
 ## Supported Event Types
