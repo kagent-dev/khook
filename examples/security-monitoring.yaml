@@ -16,84 +16,30 @@ spec:
   - eventType: pod-restart
     agentId: security-analyst
     prompt: |
-      🔒 SECURITY ALERT: Unexpected pod restart detected
-      
-      Security Event Details:
-      - Pod: {{.ResourceName}}
-      - Namespace: {{.Namespace}}
-      - Time: {{.EventTime}}
-      - Message: {{.EventMessage}}
-      
-      SECURITY ANALYSIS REQUIRED:
-      
-      1. IMMEDIATE THREAT ASSESSMENT:
-         - Was this restart expected or scheduled?
-         - Are there signs of compromise or attack?
-         - Check for suspicious process activity before restart
-         - Review recent authentication events
-      
-      2. FORENSIC INVESTIGATION:
-         - Analyze container logs for security events
-         - Check for privilege escalation attempts
-         - Review network connections and traffic patterns
-         - Examine file system changes
-      
-      3. INCIDENT RESPONSE:
-         - Isolate affected resources if compromise suspected
-         - Preserve logs and evidence
-         - Notify security team if indicators of compromise found
-         - Document timeline of events
-      
-      4. SECURITY RECOMMENDATIONS:
-         - Review pod security policies
-         - Check for security updates needed
-         - Validate access controls and permissions
-         - Recommend security hardening measures
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Treat this as a potential security incident until proven otherwise.
+      AUTONOMOUS MODE: SECURITY ALERT - Pod {{.ResourceName}} restarted at {{.EventTime}}. Security analysis required.
+
+      INSTRUCTIONS:
+      • Use all available tools to investigate security implications
+      • Check for signs of compromise, privilege escalation, or attacks
+      • Analyze container logs, network traffic, and authentication events
+      • Isolate resources if compromise suspected, preserve evidence
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   # Monitor probe failures that could indicate tampering
   - eventType: probe-failed
     agentId: security-analyst
     prompt: |
-      🛡️ SECURITY CONCERN: Health probe failure
-      
-      Probe Failure Details:
-      - Pod: {{.ResourceName}}
-      - Namespace: {{.Namespace}}
-      - Time: {{.EventTime}}
-      - Message: {{.EventMessage}}
-      
-      SECURITY IMPLICATIONS ANALYSIS:
-      
-      1. TAMPERING ASSESSMENT:
-         - Could this indicate application tampering?
-         - Check for unauthorized configuration changes
-         - Review recent deployments or updates
-         - Verify integrity of health check endpoints
-      
-      2. ATTACK VECTOR ANALYSIS:
-         - Is this part of a denial of service attack?
-         - Check for resource exhaustion attacks
-         - Review network traffic for anomalies
-         - Analyze authentication and authorization logs
-      
-      3. SECURITY VALIDATION:
-         - Verify application security controls are intact
-         - Check for signs of code injection or modification
-         - Review access logs for suspicious activity
-         - Validate security policies are being enforced
-      
-      4. RESPONSE ACTIONS:
-         - Monitor for additional security indicators
-         - Consider temporary isolation if suspicious
-         - Document findings for security review
-         - Recommend security assessment if needed
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      AUTONOMOUS MODE: SECURITY ALERT - Health probe failed for {{.ResourceName}} at {{.EventTime}}. Security implications.
+
+      INSTRUCTIONS:
+      • Use all available tools to assess tampering and attack vectors
+      • Check for unauthorized changes, code injection, or resource exhaustion
+      • Review network traffic, auth logs, and security controls
+      • Isolate if suspicious activity detected, preserve evidence
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval

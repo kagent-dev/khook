@@ -16,38 +16,28 @@ spec:
   - eventType: pod-restart
     agentId: staging-analyzer
     prompt: |
-      📊 STAGING: Pod restart analysis needed
-      
-      Pod {{.ResourceName}} restarted in staging at {{.EventTime}}.
-      
-      Staging-specific analysis:
-      1. Compare with production behavior
-      2. Validate recent deployment changes
-      3. Check if this would impact production
-      4. Test rollback procedures if needed
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Use this as a production readiness check!
+      AUTONOMOUS MODE: STAGING - Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve the issue
+      • Compare with production behavior and validate deployment changes
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   - eventType: probe-failed
     agentId: staging-analyzer
     prompt: |
-      🔍 STAGING: Health probe failure
-      
-      Health check failed for {{.ResourceName}} at {{.EventTime}}.
-      
-      Pre-production validation:
-      1. Would this pass production health checks?
-      2. Are probe timeouts realistic for production load?
-      3. Test health endpoint under load
-      4. Validate monitoring and alerting
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      AUTONOMOUS MODE: STAGING - Health probe failed for {{.ResourceName}} at {{.EventTime}}. Fix immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve health check issues
+      • Validate probe configurations and timeouts for production readiness
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
 ---
 apiVersion: kagent.dev/v1alpha2
@@ -64,18 +54,12 @@ spec:
   - eventType: pod-pending
     agentId: ci-cd-helper
     prompt: |
-      🤖 TEST ENV: Pod scheduling issue
-      
-      Pod {{.ResourceName}} pending since {{.EventTime}}.
-      
-      CI/CD troubleshooting:
-      1. Check if test cluster has sufficient resources
-      2. Verify test data setup completed
-      3. Check for resource conflicts with other tests
-      4. Validate test environment configuration
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      This might indicate test infrastructure issues.
+      AUTONOMOUS MODE: TEST ENV - Pod {{.ResourceName}} pending since {{.EventTime}}. Resolve scheduling issue immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose scheduling constraints
+      • Check test cluster resources, data setup, and configuration conflicts
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval

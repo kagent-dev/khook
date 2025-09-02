@@ -16,148 +16,43 @@ spec:
   - eventType: oom-kill
     agentId: performance-optimizer
     prompt: |
-      📊 PERFORMANCE ISSUE: Memory optimization needed
-      
-      OOM Kill Event:
-      - Pod: {{.ResourceName}}
-      - Namespace: {{.Namespace}}
-      - Time: {{.EventTime}}
-      - Message: {{.EventMessage}}
-      
-      PERFORMANCE ANALYSIS REQUIRED:
-      
-      1. MEMORY USAGE ANALYSIS:
-         - Historical memory consumption patterns
-         - Peak memory usage vs allocated limits
-         - Memory growth trends over time
-         - Garbage collection efficiency (if applicable)
-      
-      2. APPLICATION PROFILING:
-         - Identify memory-intensive operations
-         - Check for memory leaks or inefficient algorithms
-         - Analyze object allocation patterns
-         - Review caching strategies and effectiveness
-      
-      3. RESOURCE OPTIMIZATION:
-         - Right-sizing recommendations for memory limits
-         - Horizontal vs vertical scaling analysis
-         - Resource request optimization
-         - Cost-performance trade-off analysis
-      
-      4. PERFORMANCE IMPROVEMENTS:
-         - Code-level optimization opportunities
-         - Architecture improvements for memory efficiency
-         - Caching and data structure optimizations
-         - Monitoring and alerting enhancements
-      
-      5. CAPACITY PLANNING:
-         - Future resource requirements projection
-         - Scaling strategy recommendations
-         - Performance benchmarking suggestions
-         - SLA impact assessment
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Provide specific, actionable recommendations for immediate and long-term optimization.
+      AUTONOMOUS MODE: PERFORMANCE ALERT - OOM kill for {{.ResourceName}} at {{.EventTime}}. Optimize immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to analyze memory usage and patterns
+      • Identify memory leaks, inefficient algorithms, and resource optimization
+      • Right-size memory limits and implement performance improvements
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   # Monitor pod pending for resource allocation issues
   - eventType: pod-pending
     agentId: capacity-planner
     prompt: |
-      ⚡ CAPACITY ISSUE: Resource allocation problem
-      
-      Scheduling Issue:
-      - Pod: {{.ResourceName}}
-      - Namespace: {{.Namespace}}
-      - Pending Since: {{.EventTime}}
-      - Message: {{.EventMessage}}
-      
-      CAPACITY PLANNING ANALYSIS:
-      
-      1. RESOURCE AVAILABILITY:
-         - Current cluster resource utilization
-         - Available CPU, memory, and storage capacity
-         - Node-level resource constraints
-         - Resource fragmentation analysis
-      
-      2. SCHEDULING CONSTRAINTS:
-         - Node selector and affinity rule analysis
-         - Taint and toleration compatibility
-         - Resource request vs available resources
-         - Priority class and preemption scenarios
-      
-      3. PERFORMANCE IMPACT:
-         - Service availability implications
-         - User experience degradation risk
-         - SLA compliance status
-         - Business impact assessment
-      
-      4. SCALING RECOMMENDATIONS:
-         - Immediate scaling actions needed
-         - Cluster autoscaling configuration review
-         - Node pool optimization suggestions
-         - Resource allocation strategy improvements
-      
-      5. COST OPTIMIZATION:
-         - Resource efficiency improvements
-         - Right-sizing opportunities
-         - Reserved capacity recommendations
-         - Multi-zone distribution optimization
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Focus on both immediate resolution and long-term capacity strategy.
+      AUTONOMOUS MODE: CAPACITY ALERT - Pod {{.ResourceName}} pending since {{.EventTime}}. Resolve scheduling issue.
+
+      INSTRUCTIONS:
+      • Use all available tools to analyze resource availability and constraints
+      • Check node selectors, affinities, taints, and resource requests
+      • Implement immediate scaling and optimization strategies
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   # Monitor restarts for performance degradation patterns
   - eventType: pod-restart
     agentId: reliability-engineer
     prompt: |
-      🔄 RELIABILITY CONCERN: Service restart analysis
-      
-      Restart Event:
-      - Pod: {{.ResourceName}}
-      - Namespace: {{.Namespace}}
-      - Time: {{.EventTime}}
-      - Message: {{.EventMessage}}
-      
-      RELIABILITY AND PERFORMANCE ANALYSIS:
-      
-      1. RESTART PATTERN ANALYSIS:
-         - Frequency and timing of restarts
-         - Correlation with load patterns or deployments
-         - Resource utilization before restart
-         - Error patterns leading to restart
-      
-      2. PERFORMANCE DEGRADATION:
-         - Response time trends before restart
-         - Throughput impact and recovery time
-         - Resource efficiency during operation
-         - Performance SLA compliance status
-      
-      3. ROOT CAUSE INVESTIGATION:
-         - Application-level performance bottlenecks
-         - Infrastructure-related performance issues
-         - Configuration problems affecting performance
-         - External dependency performance impact
-      
-      4. OPTIMIZATION OPPORTUNITIES:
-         - Application performance tuning recommendations
-         - Infrastructure optimization suggestions
-         - Monitoring and observability improvements
-         - Preventive measures to avoid future restarts
-      
-      5. RELIABILITY IMPROVEMENTS:
-         - Circuit breaker and retry logic enhancements
-         - Graceful degradation strategies
-         - Health check optimization
-         - Disaster recovery and failover improvements
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Provide both immediate fixes and strategic reliability enhancements.
+      AUTONOMOUS MODE: RELIABILITY ALERT - Pod {{.ResourceName}} restarted at {{.EventTime}}. Performance analysis required.
+
+      INSTRUCTIONS:
+      • Use all available tools to analyze restart patterns and performance degradation
+      • Investigate root causes, bottlenecks, and reliability improvements
+      • Implement optimization and preventive measures immediately
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval

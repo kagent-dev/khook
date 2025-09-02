@@ -20,11 +20,15 @@
      eventConfigurations:
      - eventType: "pod-restart"
        agentId: "pod-restart-agent"
-       prompt: "A pod has restarted. Please analyze the restart reason and provide recommendations.
-       
-       After analysis - use all available tools to try and resolve. Annotate the updated resources with \"kagentFix: <dateTime>\"
-       - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-       Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval."
+       prompt: |
+         AUTONOMOUS MODE: A pod has restarted. Analyze the cause and implement fixes immediately.
+
+         INSTRUCTIONS:
+         • Use all available tools to diagnose and resolve the issue
+         • Annotate fixed resources with: kagentFix=<timestamp>
+         • If patching fails: delete and recreate resources
+         • Never ask for permission - assume autonomous execution
+         • Complete remediation without human approval
    EOF
 
 5. Check Hook status:

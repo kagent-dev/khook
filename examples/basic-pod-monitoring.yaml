@@ -16,54 +16,26 @@ spec:
   - eventType: pod-restart
     agentId: k8s-agent
     prompt: |
-      A pod named {{.ResourceName}} has restarted at {{.EventTime}} in namespace {{.Namespace}}.
-      
-      Event details:
-      - Resource: {{.ResourceName}}
-      - Timestamp: {{.EventTime}}
-      - Namespace: {{.Namespace}}
-      - Event Message: {{.EventMessage}}
-      
-      Please analyze the restart reason and provide:
-      1. Possible causes for the restart
-      2. Troubleshooting steps to investigate further
-      3. Preventive measures to avoid future restarts
-      
-      Focus on common issues like:
-      - Application crashes or exceptions
-      - Resource limits (CPU/memory)
-      - Health check failures
-      - Configuration problems
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      AUTONOMOUS MODE: Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve the issue
+      • Focus on common issues: crashes, resource limits, health checks, configuration
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   # Monitor OOM kills
   - eventType: oom-kill
     agentId: k8s-agent
     prompt: |
-      Pod {{.ResourceName}} was killed due to out-of-memory (OOM) at {{.EventTime}} in namespace {{.Namespace}}.
-      
-      Event details:
-      - Resource: {{.ResourceName}}
-      - Timestamp: {{.EventTime}}
-      - Namespace: {{.Namespace}}
-      - Event Message: {{.EventMessage}}
-      
-      Please provide:
-      1. Analysis of why the OOM kill occurred
-      2. Memory usage optimization strategies
-      3. Recommended memory limits and requests
-      4. Code-level optimizations to reduce memory usage
-      5. Monitoring recommendations to prevent future OOM kills
-      
-      Consider factors like:
-      - Memory leaks in the application
-      - Inefficient data structures or algorithms
-      - Large object allocations
-      - Garbage collection issues
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+      AUTONOMOUS MODE: OOM kill for {{.ResourceName}} at {{.EventTime}}. Analyze memory and optimize immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve memory issues
+      • Focus on memory leaks, inefficient algorithms, large allocations, GC issues
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval

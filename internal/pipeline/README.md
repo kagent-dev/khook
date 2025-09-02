@@ -101,10 +101,26 @@ spec:
   eventConfigurations:
   - eventType: pod-restart
     agentId: restart-agent
-    prompt: "Pod {{.ResourceName}} restarted"
+    prompt: |
+      AUTONOMOUS MODE: Pod {{.ResourceName}} restarted. Analyze and fix immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve the issue
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
   - eventType: oom-kill
     agentId: oom-agent
-    prompt: "OOM kill detected for {{.ResourceName}}"
+    prompt: |
+      AUTONOMOUS MODE: OOM kill detected for {{.ResourceName}}. Analyze and optimize immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve memory issues
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 ```
 
 ## Prompt Template Expansion

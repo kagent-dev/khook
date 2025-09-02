@@ -16,44 +16,27 @@ spec:
   - eventType: pod-restart
     agentId: dev-helper
     prompt: |
-      🔧 Dev Environment: Pod restarted
-      
-      Pod {{.ResourceName}} restarted at {{.EventTime}}.
-      
-      Quick debugging checklist:
-      1. Check recent code changes
-      2. Review application logs: kubectl logs {{.ResourceName}} --previous
-      3. Verify resource limits are appropriate for dev workloads
-      4. Check for configuration issues
-      
-      Common dev environment causes:
-      - Code changes causing crashes
-      - Missing environment variables
-      - Database connection issues
-      - Resource limits too low for debugging
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Learning opportunity: Use this as a chance to improve error handling!
+      AUTONOMOUS MODE: DEV ENV - Pod {{.ResourceName}} restarted at {{.EventTime}}. Debug and fix immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve the issue
+      • Check code changes, logs, resource limits, and configuration
+      • Focus on common dev issues: crashes, env vars, DB connections, resource limits
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   # OOM kills in development
   - eventType: oom-kill
     agentId: dev-helper
     prompt: |
-      💡 Dev Environment: OOM kill occurred
-      
-      Pod {{.ResourceName}} hit memory limits at {{.EventTime}}.
-      
-      Development tips:
-      1. Increase memory limits for development: resources.limits.memory
-      2. Profile your application's memory usage
-      3. Check for memory leaks in recent changes
-      4. Consider using memory profiling tools
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      This is a great learning opportunity to understand memory management!
+      AUTONOMOUS MODE: DEV ENV - OOM kill for {{.ResourceName}} at {{.EventTime}}. Optimize memory immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve memory issues
+      • Increase memory limits, profile usage, check for leaks in recent changes
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval

@@ -16,51 +16,16 @@ spec:
   - eventType: pod-pending
     agentId: ci-cd-engineer
     prompt: |
-      🚀 CI/CD ISSUE: Deployment scheduling problem
-      
-      Pipeline Event:
-      - Pod: {{.ResourceName}}
-      - Namespace: {{.Namespace}}
-      - Pending Since: {{.EventTime}}
-      - Message: {{.EventMessage}}
-      
-      CI/CD PIPELINE ANALYSIS:
-      
-      1. DEPLOYMENT STATUS:
-         - Is this part of an active deployment?
-         - Which pipeline stage is affected?
-         - Are other deployments blocked by this issue?
-         - Impact on release timeline and schedule
-      
-      2. RESOURCE CONSTRAINTS:
-         - CI/CD cluster resource availability
-         - Build agent capacity and utilization
-         - Test environment resource conflicts
-         - Shared resource contention issues
-      
-      3. PIPELINE OPTIMIZATION:
-         - Resource allocation for build/test workloads
-         - Parallel execution optimization opportunities
-         - Build cache and artifact management
-         - Test environment provisioning efficiency
-      
-      4. AUTOMATION IMPROVEMENTS:
-         - Auto-scaling configuration for CI/CD workloads
-         - Resource cleanup automation
-         - Pipeline retry and recovery mechanisms
-         - Monitoring and alerting for pipeline health
-      
-      5. IMMEDIATE ACTIONS:
-         - Steps to unblock the current deployment
-         - Resource scaling recommendations
-         - Pipeline configuration adjustments
-         - Communication to development teams
-      
-      After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
-      - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
-      Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
-      
-      Focus on maintaining deployment velocity and reliability.
+      AUTONOMOUS MODE: CI/CD ALERT - Pod {{.ResourceName}} pending since {{.EventTime}}. Pipeline blocked.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose deployment and resource issues
+      • Check CI/CD cluster capacity, build agents, and pipeline status
+      • Implement immediate fixes and optimization strategies
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 
   # Monitor restarts in CI/CD environments
   - eventType: pod-restart

@@ -64,10 +64,26 @@ spec:
   eventConfigurations:
   - eventType: pod-restart
     agentId: incident-responder
-    prompt: "Pod {{.ResourceName}} restarted at {{.EventTime}}. Please analyze."
+    prompt: |
+      AUTONOMOUS MODE: Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve the issue
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
   - eventType: oom-kill
     agentId: memory-analyzer
-    prompt: "OOM kill for {{.ResourceName}}. Please investigate memory usage."
+    prompt: |
+      AUTONOMOUS MODE: OOM kill for {{.ResourceName}}. Analyze memory and optimize immediately.
+
+      INSTRUCTIONS:
+      • Use all available tools to diagnose and resolve memory issues
+      • Annotate fixed resources with: kagentFix=<timestamp>
+      • If patching fails: delete and recreate resources
+      • Never ask for permission - assume autonomous execution
+      • Complete remediation without human approval
 status:
   activeEvents:
   - eventType: pod-restart
