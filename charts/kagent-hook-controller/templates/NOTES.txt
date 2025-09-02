@@ -1,13 +1,13 @@
 1. Access metrics endpoint by running these commands:
-  export POD_NAME=$(kubectl get pods --namespace {{ include "kagent-hook-controller.namespace" . }} -l "app.kubernetes.io/name={{ include "kagent-hook-controller.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export POD_NAME=$(kubectl get pods --namespace {{ include "khook.namespace" . }} -l "app.kubernetes.io/name={{ include "khook.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
   echo "Visit http://127.0.0.1:8080/metrics to view metrics"
-  kubectl --namespace {{ include "kagent-hook-controller.namespace" . }} port-forward $POD_NAME 8080:8080
+  kubectl --namespace {{ include "khook.namespace" . }} port-forward $POD_NAME 8080:8080
 
 2. Check the controller status:
-   kubectl get pods -n {{ include "kagent-hook-controller.namespace" . }} -l app.kubernetes.io/name={{ include "kagent-hook-controller.name" . }}
+   kubectl get pods -n {{ include "khook.namespace" . }} -l app.kubernetes.io/name={{ include "khook.name" . }}
 
 3. View controller logs:
-   kubectl logs -n {{ include "kagent-hook-controller.namespace" . }} -l app.kubernetes.io/name={{ include "kagent-hook-controller.name" . }}
+   kubectl logs -n {{ include "khook.namespace" . }} -l app.kubernetes.io/name={{ include "khook.name" . }}
 
 4. Create a sample Hook resource:
    kubectl apply -f - <<EOF

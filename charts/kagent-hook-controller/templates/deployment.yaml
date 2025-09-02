@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.fullname" . }}
+  namespace: {{ include "khook.namespace" . }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "kagent-hook-controller.selectorLabels" . | nindent 6 }}
+      {{- include "khook.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        {{- include "kagent-hook-controller.selectorLabels" . | nindent 8 }}
+        {{- include "khook.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "kagent-hook-controller.serviceAccountName" . }}
+      serviceAccountName: {{ include "khook.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -41,12 +41,17 @@ spec:
         - name: KAGENT_API_URL
           valueFrom:
             configMapKeyRef:
-              name: {{ include "kagent-hook-controller.fullname" . }}-config
+              name: {{ include "khook.fullname" . }}-config
               key: kagent-api-url
+        - name: KAGENT_USER_ID
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "khook.fullname" . }}-config
+              key: kagent-user-id
         - name: LOG_LEVEL
           valueFrom:
             configMapKeyRef:
-              name: {{ include "kagent-hook-controller.fullname" . }}-config
+              name: {{ include "khook.fullname" . }}-config
               key: log-level
         - name: METRICS_BIND_ADDRESS
           value: ":8080"
@@ -72,7 +77,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: {{ include "kagent-hook-controller.fullname" . }}-config
+          name: {{ include "khook.fullname" . }}-config
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

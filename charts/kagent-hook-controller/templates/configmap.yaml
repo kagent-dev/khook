@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}-config
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.fullname" . }}-config
+  namespace: {{ include "khook.namespace" . }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 data:
   controller_manager_config.yaml: |
     apiVersion: config.kagent.dev/v1alpha1
@@ -21,7 +21,7 @@ data:
     leaderElection:
       leaderElect: true
       resourceName: {{ .Values.controller.leaderElection.resourceName }}
-      resourceNamespace: {{ include "kagent-hook-controller.namespace" . }}
+      resourceNamespace: {{ include "khook.namespace" . }}
     {{- end }}
     kagent:
       apiUrl: {{ .Values.kagent.apiUrl | quote }}
@@ -35,6 +35,7 @@ data:
       timeoutMinutes: {{ .Values.controller.deduplication.timeoutMinutes }}
       cleanupIntervalMinutes: {{ .Values.controller.deduplication.cleanupIntervalMinutes }}
   kagent-api-url: {{ .Values.kagent.apiUrl | quote }}
+  kagent-user-id: {{ .Values.kagent.userId | quote }}
   log-level: {{ .Values.controller.logLevel | quote }}
   deduplication-timeout-minutes: {{ .Values.controller.deduplication.timeoutMinutes | quote }}
   cleanup-interval-minutes: {{ .Values.controller.deduplication.cleanupIntervalMinutes | quote }}

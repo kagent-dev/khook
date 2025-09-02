@@ -65,7 +65,7 @@ func main() {
 		Scheme:                 scheme,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "kagent-hook-controller",
+		LeaderElectionID:       "khook",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -125,6 +125,9 @@ func (w *workflowRunner) Start(ctx context.Context) error {
 		return err
 	}
 
+	// nsState tracks per-namespace workflow state:
+	// - cancel: cancels the running workflow goroutine for the namespace
+	// - signature: hash of current hooks in the namespace to detect changes
 	type nsState struct {
 		cancel    context.CancelFunc
 		signature string
@@ -168,7 +171,7 @@ func (w *workflowRunner) Start(ctx context.Context) error {
 			logger.Info("Computed event types for namespace", "namespace", ns, "eventTypes", types)
 
 			// Build status manager using manager client and recorder
-			statusMgr := status.NewManager(w.mgr.GetClient(), w.mgr.GetEventRecorderFor("kagent-hook-controller"))
+			statusMgr := status.NewManager(w.mgr.GetClient(), w.mgr.GetEventRecorderFor("khook"))
 
 			go func(namespace string, hooks []*kagentv1alpha2.Hook, eventTypes []string) {
 				logger.Info("Starting namespace workflow", "namespace", namespace, "hookCount", len(hooks), "eventTypes", eventTypes)
@@ -229,7 +232,11 @@ func uniqueEventTypes(hooks []*kagentv1alpha2.Hook) []string {
 func signatureForHooks(hooks []*kagentv1alpha2.Hook) string {
 	parts := make([]string, 0, len(hooks))
 	for _, h := range hooks {
-		parts = append(parts, h.Namespace+"/"+h.Name+"@"+h.ResourceVersion)
+		cfgs := make([]string, 0, len(h.Spec.EventConfigurations))
+		for _, ec := range h.Spec.EventConfigurations {
+			cfgs = append(cfgs, ec.EventType+"|"+ec.AgentId+"|"+ec.Prompt)
+		}
+		parts = append(parts, h.Namespace+"/"+h.Name+"@"+strings.Join(cfgs, ";"))
 	}
 	return strings.Join(parts, ",")
 }

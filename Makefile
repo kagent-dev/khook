@@ -115,19 +115,19 @@ helm-lint: ## Lint Helm chart.
 
 .PHONY: helm-template
 helm-template: ## Generate Helm templates.
-	helm template kagent-hook-controller charts/kagent-hook-controller
+	helm template khook charts/kagent-hook-controller
 
 .PHONY: helm-install
 helm-install: ## Install Helm chart.
-	helm install kagent-hook-controller charts/kagent-hook-controller \
+	helm install khook charts/kagent-hook-controller \
 		--namespace kagent-system \
 		--create-namespace
 
 .PHONY: helm-upgrade
 helm-upgrade: ## Upgrade Helm chart.
-	helm upgrade kagent-hook-controller charts/kagent-hook-controller \
+	helm upgrade khook charts/kagent-hook-controller \
 		--namespace kagent-system
 
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall Helm chart.
-	helm uninstall kagent-hook-controller --namespace kagent-system
+	helm uninstall khook --namespace kagent-system

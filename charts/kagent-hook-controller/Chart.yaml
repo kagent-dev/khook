@@ -1,12 +1,12 @@
 apiVersion: v2
-name: kagent-hook-controller
-description: A Kubernetes controller that enables automated responses to Kubernetes events by integrating with the Kagent platform
+name: khook
+description: khook - a Kubernetes hook controller that integrates with Kagent (A2A)
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
-home: https://github.com/kagent-dev/kagent-hook-controller
+home: https://github.com/antweiss/khook
 sources:
-- https://github.com/kagent-dev/kagent-hook-controller
+- https://github.com/antweiss/khook
 maintainers:
 - name: Kagent Team
   email: support@kagent.dev

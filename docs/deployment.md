@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers different deployment methods for the Kagent Hook Controller.
+This guide covers different deployment methods for khook.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ helm install kagent-hook-crds ./charts/kagent-hook-crds \
   --namespace kagent \
 
 # Install controller
-helm install kagent-hook-controller ./charts/kagent-hook-controller \
+helm install khook ./charts/kagent-hook-controller \
   --namespace kagent \
   --create-namespace
 ```
@@ -41,7 +41,7 @@ helm install kagent-hook-controller ./charts/kagent-hook-controller \
 #### 3. Verify Deployment
 
 ```bash
-helm status kagent-hook-controller -n kagent
+helm status khook -n kagent
 kubectl get pods -n kagent
 ```
 
@@ -73,7 +73,7 @@ make deploy
 
 ```bash
 kubectl get pods -n kagent
-kubectl logs -n kagent -l app.kubernetes.io/name=kagent-hook-controller
+kubectl logs -n kagent -l app.kubernetes.io/name=khook
 ```
 
 ### Method 3: Manual Deployment
@@ -172,7 +172,7 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchLabels:
-                  app.kubernetes.io/name: kagent-hook-controller
+                  app.kubernetes.io/name: khook
               topologyKey: kubernetes.io/hostname
 ```
 
@@ -195,11 +195,11 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: kagent-hook-controller
+  name: khook
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: kagent-hook-controller
+      app.kubernetes.io/name: khook
   endpoints:
   - port: metrics
 ```
@@ -223,7 +223,7 @@ make deploy
 git pull origin main
 
 # Upgrade release
-helm upgrade kagent-hook-controller ./charts/kagent-hook-controller \
+helm upgrade khook ./charts/kagent-hook-controller \
   --namespace kagent
 ```
 
@@ -254,7 +254,7 @@ kubectl get pods -n kagent
 kubectl describe pod <controller-pod> -n kagent
 
 # View logs
-kubectl logs -n kagent -l app.kubernetes.io/name=kagent-hook-controller -f
+kubectl logs -n kagent -l app.kubernetes.io/name=khook -f
 
 # Check Hook resources
 kubectl get hooks -A
@@ -276,7 +276,7 @@ make uninstall
 ### Helm Uninstall
 
 ```bash
-helm uninstall kagent-hook-controller -n kagent
+helm uninstall khook -n kagent
 kubectl delete namespace kagent
 ```
 

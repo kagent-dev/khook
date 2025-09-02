@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.namespace" . }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 {{- end }}

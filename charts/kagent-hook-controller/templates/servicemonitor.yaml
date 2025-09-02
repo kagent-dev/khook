@@ -2,10 +2,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}
-  namespace: {{ .Values.metrics.serviceMonitor.namespace | default (include "kagent-hook-controller.namespace" .) }}
+  name: {{ include "khook.fullname" . }}
+  namespace: {{ .Values.metrics.serviceMonitor.namespace | default (include "khook.namespace" .) }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
     {{- with .Values.metrics.serviceMonitor.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -16,7 +16,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- include "kagent-hook-controller.selectorLabels" . | nindent 6 }}
+      {{- include "khook.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: metrics
   endpoints:
   - port: metrics

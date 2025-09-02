@@ -10,7 +10,7 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: kagent-hook-controller-leader-election
+  resourceName: khook-leader-election
   resourceNamespace: kagent-system
 kagent:
   apiUrl: "https://api.kagent.dev"

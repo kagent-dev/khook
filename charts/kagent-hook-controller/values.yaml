@@ -13,6 +13,7 @@ fullnameOverride: ""
 # Kagent API configuration
 kagent:
   apiUrl: "http://kagent-controller.kagent.svc.cluster.local:8083"
+  userId: "admin@kagent.dev"
   timeout: "30s"
   retryAttempts: 3
   retryBackoff: "1s"

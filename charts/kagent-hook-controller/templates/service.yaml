@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}-metrics
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.fullname" . }}-metrics
+  namespace: {{ include "khook.namespace" . }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
     app.kubernetes.io/component: metrics
 spec:
   type: ClusterIP
@@ -15,5 +15,5 @@ spec:
     targetPort: metrics
     protocol: TCP
   selector:
-    {{- include "kagent-hook-controller.selectorLabels" . | nindent 4 }}
+    {{- include "khook.selectorLabels" . | nindent 4 }}
 {{- end }}

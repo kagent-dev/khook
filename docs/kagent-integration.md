@@ -72,7 +72,7 @@ Content-Type: application/json
     "eventMessage": "Container my-app restarted"
   },
   "metadata": {
-    "source": "kagent-hook-controller",
+    "source": "khook",
     "hookName": "production-monitoring",
     "kubernetesCluster": "prod-cluster-1"
   }
@@ -257,7 +257,7 @@ Verify Kagent API connectivity:
 
 ```bash
 # Test API connectivity
-kubectl exec -n kagent-system deployment/kagent-hook-controller -- \
+kubectl exec -n kagent-system deployment/khook -- \
   curl -H "Authorization: Bearer $KAGENT_API_KEY" \
   $KAGENT_BASE_URL/health
 
@@ -313,7 +313,7 @@ Ensure this complies with your data governance policies.
 3. **Proxy Configuration:**
    ```bash
    # Configure HTTP proxy if needed
-   kubectl set env deployment/kagent-hook-controller HTTP_PROXY=http://proxy:8080
+   kubectl set env deployment/khook HTTP_PROXY=http://proxy:8080
    ```
 
 ### Debug API Calls
@@ -321,8 +321,8 @@ Ensure this complies with your data governance policies.
 Enable API debug logging:
 
 ```bash
-kubectl set env deployment/kagent-hook-controller LOG_LEVEL=debug
-kubectl logs -n kagent-system deployment/kagent-hook-controller | grep "kagent-api"
+kubectl set env deployment/khook LOG_LEVEL=debug
+kubectl logs -n kagent-system deployment/khook | grep "kagent-api"
 ```
 
 ## Support

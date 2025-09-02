@@ -9,8 +9,8 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
 ### Key Features
 
 - **Multi-Event Monitoring**: Monitor multiple Kubernetes event types (pod-restart, pod-pending, oom-kill, probe-failed) in a single hook configuration
-- **Intelligent Deduplication**: Prevents duplicate notifications with 10-minute timeout logic
-- **Kagent Integration**: Seamlessly integrates with the Kagent platform for intelligent incident response
+- **Basic Deduplication**: Prevents duplicate notifications with 10-minute timeout logic
+- **Kagent Integration**:  Integrates with the Kagent platform for AI agent incident response. (Can in theory talk to any a2a-enabled agent)
 - **Status Tracking**: Provides real-time status updates and audit trails through Kubernetes events
 - **High Availability**: Supports leader election for production deployments
 
@@ -55,7 +55,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
 
 - Kubernetes cluster (v1.20+)
 - kubectl configured to access your cluster
-- Kagent platform access with API credentials
+- [Kagent](https://kagent.dev) installed in cluster or accessible via network.
 
 ### Installation
 
@@ -68,7 +68,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
      --namespace kagent \
      --create-namespace
    # Install controller
-   helm install kagent-hook-controller ./charts/kagent-hook-controller \
+   helm install khook ./charts/kagent-hook-controller \
      --namespace kagent \
      --create-namespace
    ```
@@ -80,20 +80,14 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
      helm install kagent-hook-crds "$TMP_DIR/khook/charts/kagent-hook-crds" \
        --namespace kagent \
        --create-namespace && \
-     helm install kagent-hook-controller "$TMP_DIR/khook/charts/kagent-hook-controller" \
+     helm install khook "$TMP_DIR/khook/charts/kagent-hook-controller" \
        --namespace kagent \
        --create-namespace && \
      rm -rf "$TMP_DIR"
    ```
 
-2. **Configure Kagent API Access (if using Secrets directly)**:
-   ```bash
-   kubectl create secret generic kagent-credentials \
-     --from-literal=api-key=your-kagent-api-key \
-     --from-literal=base-url=https://api.kagent.dev
-   ```
 
-3. **Create Your First Hook**:
+2. **Create Your First Hook**:
    ```yaml
    apiVersion: kagent.dev/v1alpha2
    kind: Hook
@@ -121,6 +115,13 @@ The controller supports monitoring the following Kubernetes event types:
 | `oom-kill` | Pod was killed due to out-of-memory | Memory limits exceeded, memory leaks |
 | `probe-failed` | Liveness or readiness probe failed | Application not responding, configuration issues |
 
+## Future 
+The controller will support reacting to additional Kubernetes event.
+
+## Further Future
+
+The controller will support reacting to non-Kubernetes events: task queues, Kafka, webhooks, DB writes, etc.
+
 ## Configuration
 
 ### Hook Configuration
@@ -146,8 +147,8 @@ The controller can be configured via environment variables:
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `KAGENT_BASE_URL` | Base URL for Kagent API | `https://api.kagent.dev` | Yes |
-| `KAGENT_API_KEY` | API key for authentication | - | Yes |
+| `KAGENT_BASE_URL` | Base URL for Kagent API | `http://kagent-controller.kagent.svc.cluster.local:8083` | Yes |
+| `KAGENT_USER_ID` | User identity for A2A requests | `admin@kagent.dev` | Yes |
 | `LOG_LEVEL` | Logging level (debug, info, warn, error) | `info` | No |
 | `METRICS_PORT` | Port for metrics endpoint | `8080` | No |
 | `HEALTH_PORT` | Port for health checks | `8081` | No |
@@ -171,12 +172,12 @@ spec:
     agentId: pod-restart-analyzer
     prompt: |
       A pod named {{.ResourceName}} has restarted at {{.EventTime}}.
-      Please analyze the restart reason and provide troubleshooting steps.
+      Please analyze the restart reason and remediate in a fully autonomous matter. Use all available tools. Don't ask for approval.
   - eventType: oom-kill
     agentId: memory-optimizer
     prompt: |
       Pod {{.ResourceName}} was killed due to OOM at {{.EventTime}}.
-      Please analyze memory usage and suggest optimization strategies.
+      Please analyze memory usage and resolve in a fully autonomous matter. Use all available tools. Don't ask for approval.
 ```
 
 ### Production Monitoring with Multiple Event Types
@@ -236,19 +237,17 @@ spec:
 
 ### Authentication Setup
 
-The controller authenticates with the Kagent platform using API keys. Set up authentication:
+Current Kagent setup does not require an API key. The controller identifies the caller via a user ID and base URL.
 
-1. **Using Kubernetes Secrets** (Recommended):
-   ```bash
-   kubectl create secret generic kagent-credentials \
-     --from-literal=api-key=your-api-key \
-     --from-literal=base-url=https://your-kagent-instance.com
-   ```
+1. Configure via Helm values (recommended):
+   - `.Values.kagent.apiUrl` (default: `http://kagent-controller.kagent.svc.cluster.local:8083`)
+   - `.Values.kagent.userId` (default: `admin@kagent.dev`)
 
-2. **Using Environment Variables**:
+2. Or set environment variables on the Deployment:
    ```bash
-   export KAGENT_API_KEY=your-api-key
-   export KAGENT_BASE_URL=https://your-kagent-instance.com
+   kubectl set env -n kagent deploy/khook \
+     KAGENT_API_URL=http://kagent-controller.kagent.svc.cluster.local:8083 \
+     KAGENT_USER_ID=admin@kagent.dev
    ```
 
 ### API Request Format

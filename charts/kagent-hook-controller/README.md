@@ -6,7 +6,7 @@ This Helm chart deploys the Kagent Hook Controller, a Kubernetes controller that
 
 - Kubernetes 1.19+
 - Helm 3.0+
-- Access to Kagent API (API token required)
+- Kagent reachable in-cluster (no API token required)
 
 ## Installation
 
@@ -41,8 +41,8 @@ The following table lists the configurable parameters and their default values:
 | `image.repository` | Controller image repository | `otomato/khook` |
 | `image.tag` | Controller image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `kagent.apiUrl` | Kagent API URL | `https://api.kagent.dev` |
-| `kagent.apiToken` | (removed) No token required | - |
+| `kagent.apiUrl` | Kagent API URL | `http://kagent-controller.kagent.svc.cluster.local:8083` |
+| `kagent.userId` | User identity for requests | `admin@kagent.dev` |
 | `kagent.timeout` | API request timeout | `30s` |
 | `kagent.retryAttempts` | Number of retry attempts | `3` |
 | `controller.logLevel` | Log level (debug, info, warn, error) | `info` |

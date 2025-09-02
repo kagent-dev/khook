@@ -2,9 +2,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}-manager-role
+  name: {{ include "khook.fullname" . }}-manager-role
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 rules:
 # Hook CRD permissions
 - apiGroups:
@@ -84,26 +84,26 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}-manager-rolebinding
+  name: {{ include "khook.fullname" . }}-manager-rolebinding
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "kagent-hook-controller.fullname" . }}-manager-role
+  name: {{ include "khook.fullname" . }}-manager-role
 subjects:
 - kind: ServiceAccount
-  name: {{ include "kagent-hook-controller.serviceAccountName" . }}
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.serviceAccountName" . }}
+  namespace: {{ include "khook.namespace" . }}
 ---
 {{- if .Values.controller.leaderElection.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}-leader-election-role
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.fullname" . }}-leader-election-role
+  namespace: {{ include "khook.namespace" . }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""
@@ -140,17 +140,17 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "kagent-hook-controller.fullname" . }}-leader-election-rolebinding
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.fullname" . }}-leader-election-rolebinding
+  namespace: {{ include "khook.namespace" . }}
   labels:
-    {{- include "kagent-hook-controller.labels" . | nindent 4 }}
+    {{- include "khook.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "kagent-hook-controller.fullname" . }}-leader-election-role
+  name: {{ include "khook.fullname" . }}-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: {{ include "kagent-hook-controller.serviceAccountName" . }}
-  namespace: {{ include "kagent-hook-controller.namespace" . }}
+  name: {{ include "khook.serviceAccountName" . }}
+  namespace: {{ include "khook.namespace" . }}
 {{- end }}
 {{- end }}

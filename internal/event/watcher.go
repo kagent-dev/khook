@@ -266,6 +266,10 @@ func (w *Watcher) mapKubernetesEvent(k8sEvent *eventsv1.Event) *interfaces.Event
 
 // mapEventType maps Kubernetes event reasons to our event types
 func (w *Watcher) mapEventType(k8sEvent *eventsv1.Event) string {
+	// Ignore Normal events entirely; only act on warnings/errors
+	if strings.ToLower(k8sEvent.Type) == "normal" {
+		return ""
+	}
 	// Map based on the regarding object kind and event reason
 	switch k8sEvent.Regarding.Kind {
 	case "Pod":

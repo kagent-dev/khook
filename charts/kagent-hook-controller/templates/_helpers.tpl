@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "kagent-hook-controller.name" -}}
+{{- define "khook.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "kagent-hook-controller.fullname" -}}
+{{- define "khook.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "kagent-hook-controller.chart" -}}
+{{- define "khook.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "kagent-hook-controller.labels" -}}
-helm.sh/chart: {{ include "kagent-hook-controller.chart" . }}
-{{ include "kagent-hook-controller.selectorLabels" . }}
+{{- define "khook.labels" -}}
+helm.sh/chart: {{ include "khook.chart" . }}
+{{ include "khook.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "kagent-hook-controller.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "kagent-hook-controller.name" . }}
+{{- define "khook.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "khook.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "kagent-hook-controller.serviceAccountName" -}}
+{{- define "khook.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "kagent-hook-controller.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "khook.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
@@ -64,7 +64,7 @@ Create the name of the service account to use
 {{/*
 Create the namespace to use
 */}}
-{{- define "kagent-hook-controller.namespace" -}}
+{{- define "khook.namespace" -}}
 {{- if .Values.namespace.create }}
 {{- .Values.namespace.name }}
 {{- else }}
