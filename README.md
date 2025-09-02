@@ -1,4 +1,8 @@
-# KAgent Hook Controller
+# khook
+
+<p align="center">
+  <img src="docs/khoo-logo.svg" alt="khook logo" width="240" />
+</p>
 
 A Kubernetes controller that enables automated responses to Kubernetes events by integrating with the Kagent platform.
 
