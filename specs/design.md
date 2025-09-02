@@ -20,7 +20,6 @@ graph TB
     H --> I[Kagent Platform]
     E --> J[Event Processing Pipeline]
     J --> K[Template Engine]
-    K --> L[Autonomous Remediation]
 ```
 
 ### Core Components
@@ -239,7 +238,7 @@ sequenceDiagram
     alt Event not duplicate
         DM->>EPP: Process event
         EPP->>EPP: Expand templates with event context
-        EPP->>KC: Call Kagent agent autonomously
+        EPP->>KC: Call Kagent agent
         KC->>SM: Update hook status (firing)
         SM->>K8s: Update hook CRD status
     else Event is duplicate
@@ -267,12 +266,11 @@ sequenceDiagram
 - ✅ Client configuration validation
 - ✅ URL and authentication validation
 
-### Autonomous Execution
+### Event Processing
 - ✅ Race-condition-safe event processing
-- ✅ Template-based prompt generation
-- ✅ Resource annotation for tracking fixes
-- ✅ Permission-less execution design
+- ✅ Template-based prompt generation for Kagent
 - ✅ Comprehensive error handling and recovery
+- ✅ Efficient deduplication and status tracking
 
 ## Error Handling
 
