@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -76,6 +78,39 @@ func DefaultConfig() *Config {
 	}
 }
 
+// validateConfigPath validates and sanitizes the config file path to prevent path traversal
+func validateConfigPath(configFile string) (string, error) {
+	if configFile == "" {
+		return "", nil
+	}
+
+	// Clean the path to remove any .. or . components
+	cleanPath := filepath.Clean(configFile)
+
+	// Check for path traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return "", fmt.Errorf("path traversal detected in config file path: %s", configFile)
+	}
+
+	// Ensure the path doesn't start with suspicious characters
+	if strings.HasPrefix(cleanPath, "/") || strings.HasPrefix(cleanPath, "\\") {
+		// Allow absolute paths but validate them
+		if !filepath.IsAbs(cleanPath) {
+			return "", fmt.Errorf("invalid absolute path: %s", configFile)
+		}
+	}
+
+	// Additional validation: check for suspicious patterns
+	suspiciousPatterns := []string{"../", "..\\", "/..", "\\.."}
+	for _, pattern := range suspiciousPatterns {
+		if strings.Contains(cleanPath, pattern) {
+			return "", fmt.Errorf("suspicious path pattern detected: %s", pattern)
+		}
+	}
+
+	return cleanPath, nil
+}
+
 // Load loads configuration from file or returns default configuration
 func Load(configFile string) (*Config, error) {
 	config := DefaultConfig()
@@ -94,7 +129,14 @@ func Load(configFile string) (*Config, error) {
 
 	// Load from file if specified
 	if configFile != "" {
-		data, err := os.ReadFile(configFile)
+		// Validate and sanitize the config file path
+		safePath, err := validateConfigPath(configFile)
+		if err != nil {
+			return nil, fmt.Errorf("invalid config file path: %w", err)
+		}
+
+		// #nosec G304 - Path is validated above to prevent path traversal
+		data, err := os.ReadFile(safePath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
