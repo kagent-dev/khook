@@ -138,8 +138,15 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
 
+    - name: Check for Trivy SARIF file
+      run: |
+        if [ ! -f "trivy-results.sarif" ]; then
+          echo "Trivy results file not found!"
+          exit 1
+        fi
+
     - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
