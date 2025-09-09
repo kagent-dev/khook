@@ -12,10 +12,10 @@ on:
 
 env:
   # Cache key components for better organization
-  CACHE_KEY_PREFIX: khook-v2
+  CACHE_KEY_PREFIX: kagent-v2
   BRANCH_CACHE_KEY: ${{ github.head_ref || github.ref_name }}
   # Consistent builder configuration
-  BUILDX_BUILDER_NAME: khook-builder-v0.23.0
+  BUILDX_BUILDER_NAME: kagent-builder-v0.23.0
   BUILDX_VERSION: v0.23.0
 
 jobs:

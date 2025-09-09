@@ -18,11 +18,11 @@ LOCALARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 # Docker buildx configuration
 BUILDKIT_VERSION = v0.23.0
 BUILDX_NO_DEFAULT_ATTESTATIONS=1
-BUILDX_BUILDER_NAME ?= khook-builder-$(BUILDKIT_VERSION)
+BUILDX_BUILDER_NAME ?= kagent-builder-$(BUILDKIT_VERSION)
 
 DOCKER_BUILDER ?= docker buildx
 DOCKER_BUILD_ARGS ?= --push --platform linux/$(LOCALARCH)
-KIND_CLUSTER_NAME ?= khook
+KIND_CLUSTER_NAME ?= kagent
 
 DOCKER_IMAGE ?= khook
 
