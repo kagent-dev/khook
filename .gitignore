@@ -61,8 +61,8 @@ coverage.html
 .env.*.local
 
 # Helm charts
-charts/*/charts/
-charts/*/requirements.lock
+helm/*/charts/
+helm/*/requirements.lock
 
 # Generated files
 *.pb.go

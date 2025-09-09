@@ -16,7 +16,7 @@ This Helm chart deploys the Kagent Hook Controller, a Kubernetes controller that
 # Clone the repository and install from local chart
 git clone https://github.com/antweiss/khook.git
 cd khook
-helm install khook ./charts/khook \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace \
   # no API token required
@@ -25,7 +25,7 @@ helm install khook ./charts/khook \
 ### Install with Custom Values
 
 ```bash
-helm install khook ./charts/khook \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace \
   --values custom-values.yaml
@@ -65,7 +65,7 @@ The following table lists the configurable parameters and their default values:
 ### Basic Installation
 
 ```bash
-helm install khook ./charts/khook
+helm install khook ./helm/khook
 ```
 
 ### Production Installation with Monitoring
@@ -114,7 +114,7 @@ affinity:
 ```
 
 ```bash
-helm install khook ./charts/khook \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace \
   --values production-values.yaml

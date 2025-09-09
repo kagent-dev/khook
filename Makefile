@@ -81,13 +81,18 @@ run: fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build:
-	$(DOCKER_BUILDER) build $(DOCKER_BUILD_ARGS) -t $(IMG) .
-
-.PHONY: docker-login
-docker-login: ## Login to Docker Hub (requires DOCKER_USERNAME and DOCKER_PASSWORD env vars).
-	@echo "$$DOCKER_PASSWORD" | docker login -u "$$DOCKER_USERNAME" --password-stdin
+	$(DOCKER_BUILDER) build --build-arg VERSION=$(VERSION) $(DOCKER_BUILD_ARGS) -t $(IMG) .
 
 ##@ Deployment
+
+.PHONY: create-kind-cluster
+create-kind-cluster:
+	bash ./scripts/kind/setup-kind.sh
+	bash ./scripts/kind/setup-metallb.sh
+
+.PHONY: delete-kind-cluster
+delete-kind-cluster:
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 .PHONY: install
 install: ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -121,21 +126,21 @@ kustomize-build: ## Build kustomized manifests.
 
 .PHONY: helm-lint
 helm-lint: ## Lint Helm chart.
-	helm lint charts/khook
+	helm lint helm/khook
 
 .PHONY: helm-template
 helm-template: ## Generate Helm templates.
-	helm template khook charts/khook
+	helm template khook helm/khook
 
 .PHONY: helm-install
 helm-install: ## Install Helm chart.
-	helm install khook charts/khook \
+	helm install khook helm/khook \
 		--namespace kagent \
 		--create-namespace
 
 .PHONY: helm-upgrade
 helm-upgrade: ## Upgrade Helm chart.
-	helm upgrade khook charts/khook \
+	helm upgrade khook helm/khook \
 		--namespace kagent
 
 .PHONY: helm-uninstall

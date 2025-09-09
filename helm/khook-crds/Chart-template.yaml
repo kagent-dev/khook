@@ -1,9 +1,9 @@
 apiVersion: v2
-name: khook
-description: khook - a Kubernetes hook controller that integrates with Kagent (A2A)
+name: khook-crds
+description: CRDs for the Kagent Hook Controller (hooks.kagent.dev)
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: ${VERSION}
+appVersion: "${VERSION}"
 home: https://github.com/kagent-dev/khook
 sources:
 - https://github.com/kagent-dev/khook

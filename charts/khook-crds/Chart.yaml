@@ -1,7 +1,0 @@
-apiVersion: v2
-name: khook-crds
-description: CRDs for the Kagent Hook Controller (hooks.kagent.dev)
-type: application
-version: 0.1.0
-appVersion: "0.1.0"
-

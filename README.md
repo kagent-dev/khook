@@ -71,11 +71,11 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    git clone https://github.com/antweiss/khook.git
    cd khook
    # Install CRDs first
-   helm install khook-crds ./charts/khook-crds \
+   helm install khook-crds ./helm/khook-crds \
      --namespace kagent \
      --create-namespace
    # Install controller
-   helm install khook ./charts/khook \
+   helm install khook ./helm/khook \
      --namespace kagent \
      --create-namespace
    ```
@@ -84,10 +84,10 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    ```bash
    TMP_DIR="$(mktemp -d)" && \
      git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
-     helm install khook-crds "$TMP_DIR/khook/charts/khook-crds" \
+     helm install khook-crds "$TMP_DIR/khook/helm/khook-crds" \
        --namespace kagent \
        --create-namespace && \
-     helm install khook "$TMP_DIR/khook/charts/khook" \
+     helm install khook "$TMP_DIR/khook/helm/khook" \
        --namespace kagent \
        --create-namespace && \
      rm -rf "$TMP_DIR"
