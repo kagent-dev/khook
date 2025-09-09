@@ -137,25 +137,30 @@ helm-version:
 	helm package -d $(HELM_DIST_FOLDER) helm/khook-crds
 	helm package -d $(HELM_DIST_FOLDER) helm/khook
 
+	.PHONY: helm-publish
+helm-publish: helm-version
+	helm push ./$(HELM_DIST_FOLDER)/khook-crds-$(VERSION).tgz $(HELM_REPO)/khook/helm
+	helm push ./$(HELM_DIST_FOLDER)/khook-$(VERSION).tgz $(HELM_REPO)/khook/helm
+
 .PHONY: helm-lint
 helm-lint: ## Lint Helm chart.
 	helm lint helm/khook
 
 .PHONY: helm-template
-helm-template: ## Generate Helm templates.
+helm-template: helm-version## Generate Helm templates.
 	helm template khook helm/khook
 
 .PHONY: helm-install
-helm-install: ## Install Helm chart.
+helm-install: helm-version## Install Helm chart.
 	helm install khook helm/khook \
 		--namespace kagent \
 		--create-namespace
 
 .PHONY: helm-upgrade
-helm-upgrade: ## Upgrade Helm chart.
+helm-upgrade: helm-version## Upgrade Helm chart.
 	helm upgrade khook helm/khook \
 		--namespace kagent
 
 .PHONY: helm-uninstall
-helm-uninstall: ## Uninstall Helm chart.
+helm-uninstall: helm-version## Uninstall Helm chart.
 	helm uninstall khook --namespace kagent
