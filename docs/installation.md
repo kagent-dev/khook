@@ -28,12 +28,12 @@ helm install khook-crds ./charts/kagent-hook-crds \
   --namespace kagent \
   
 # Install controller with default values
-helm install khook ./charts/khook-controller \
+helm install khook ./charts/khook \
   --namespace kagent \
   --create-namespace
 
 # Optional: customize API URL and other values
-helm install khook ./charts/khook-controller \
+helm install khook ./charts/khook \
   --namespace kagent \
   --create-namespace \
   --set kagent.apiUrl="https://api.kagent.dev"
@@ -42,7 +42,7 @@ helm install khook ./charts/khook-controller \
 kubectl get pods -n kagent
 ```
 
-Chart location: charts/khook-controller (see repo tree).
+Chart location: charts/khook (see repo tree).
 
 #### One-liner install
 
@@ -52,7 +52,7 @@ TMP_DIR="$(mktemp -d)" && \
   helm install khook-crds "$TMP_DIR/khook/charts/khook-crds" \
     --namespace kagent \
     --create-namespace && \
-  helm install khook "$TMP_DIR/khook/charts/khook-controller" \
+  helm install khook "$TMP_DIR/khook/charts/khook" \
     --namespace kagent \
     --create-namespace && \
   rm -rf "$TMP_DIR"
@@ -319,7 +319,7 @@ kubectl set env deployment/khook -n kagent LOG_LEVEL=debug
 
 ```bash
 # From the cloned repository root
-helm upgrade khook ./charts/khook-controller \
+helm upgrade khook ./charts/khook \
   --namespace kagent
 ```
 

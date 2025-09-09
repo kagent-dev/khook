@@ -4,9 +4,9 @@ description: khook - a Kubernetes hook controller that integrates with Kagent (A
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
-home: https://github.com/antweiss/khook
+home: https://github.com/kagent-dev/khook
 sources:
-- https://github.com/antweiss/khook
+- https://github.com/kagent-dev/khook
 maintainers:
 - name: Kagent Team
   email: support@kagent.dev

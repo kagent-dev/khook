@@ -33,7 +33,7 @@ helm install khook-crds ./charts/kagent-hook-crds \
   --namespace kagent \
 
 # Install controller
-helm install khook ./charts/khook-controller \
+helm install khook ./charts/khook \
   --namespace kagent \
   --create-namespace
 ```
@@ -223,7 +223,7 @@ make deploy
 git pull origin main
 
 # Upgrade release
-helm upgrade khook ./charts/khook-controller \
+helm upgrade khook ./charts/khook \
   --namespace kagent
 ```
 

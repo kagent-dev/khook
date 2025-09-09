@@ -1,9 +1,33 @@
 # Image URL to use all building/pushing image targets
-IMG ?= kagent/hook-controller:latest
-DOCKER_REGISTRY ?= otomato
+
+# Image configuration
+DOCKER_REGISTRY ?= localhost:5001
+BASE_IMAGE_REGISTRY ?= ghcr.io
+DOCKER_REPO ?= kagent-dev/khook
+HELM_REPO ?= oci://ghcr.io/kagent-dev
+HELM_DIST_FOLDER ?= dist
+
+BUILD_DATE := $(shell date -u '+%Y-%m-%d')
+GIT_COMMIT := $(shell git rev-parse --short HEAD || echo "unknown")
+VERSION ?= $(shell git describe --tags --always 2>/dev/null | grep v || echo "v0.0.0-$(GIT_COMMIT)")
+
+# Local architecture detection to build for the current platform
+LOCALARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+
+
+# Docker buildx configuration
+BUILDKIT_VERSION = v0.23.0
+BUILDX_NO_DEFAULT_ATTESTATIONS=1
+BUILDX_BUILDER_NAME ?= khook-builder-$(BUILDKIT_VERSION)
+
+DOCKER_BUILDER ?= docker buildx
+DOCKER_BUILD_ARGS ?= --push --platform linux/$(LOCALARCH)
+KIND_CLUSTER_NAME ?= khook
+
 DOCKER_IMAGE ?= khook
-GIT_HASH ?= $(shell git rev-parse --short HEAD)
-DOCKER_TAG ?= $(GIT_HASH)
+
+IMG ?= $(DOCKER_REGISTRY)/$(DOCKER_REPO)/$(DOCKER_IMAGE):$(VERSION)
+
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -56,22 +80,8 @@ run: fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
 
 .PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	docker build -t ${IMG} .
-
-.PHONY: docker-push
-docker-push: ## Push docker image with the manager.
-	docker push ${IMG}
-
-.PHONY: docker-build-hash
-docker-build-hash: ## Build docker image with git hash tag.
-	docker build -t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
-	docker tag $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
-
-.PHONY: docker-push-hash
-docker-push-hash: docker-build-hash ## Build and push docker image with git hash tag to Docker Hub.
-	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
-	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
+docker-build:
+	$(DOCKER_BUILDER) build $(DOCKER_BUILD_ARGS) -t $(IMG) .
 
 .PHONY: docker-login
 docker-login: ## Login to Docker Hub (requires DOCKER_USERNAME and DOCKER_PASSWORD env vars).
@@ -111,21 +121,21 @@ kustomize-build: ## Build kustomized manifests.
 
 .PHONY: helm-lint
 helm-lint: ## Lint Helm chart.
-	helm lint charts/khook-controller
+	helm lint charts/khook
 
 .PHONY: helm-template
 helm-template: ## Generate Helm templates.
-	helm template khook charts/khook-controller
+	helm template khook charts/khook
 
 .PHONY: helm-install
 helm-install: ## Install Helm chart.
-	helm install khook charts/khook-controller \
+	helm install khook charts/khook \
 		--namespace kagent \
 		--create-namespace
 
 .PHONY: helm-upgrade
 helm-upgrade: ## Upgrade Helm chart.
-	helm upgrade khook charts/khook-controller \
+	helm upgrade khook charts/khook \
 		--namespace kagent
 
 .PHONY: helm-uninstall

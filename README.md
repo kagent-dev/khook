@@ -75,7 +75,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
      --namespace kagent \
      --create-namespace
    # Install controller
-   helm install khook ./charts/khook-controller \
+   helm install khook ./charts/khook \
      --namespace kagent \
      --create-namespace
    ```
@@ -87,7 +87,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
      helm install khook-crds "$TMP_DIR/khook/charts/khook-crds" \
        --namespace kagent \
        --create-namespace && \
-     helm install khook "$TMP_DIR/khook/charts/khook-controller" \
+     helm install khook "$TMP_DIR/khook/charts/khook" \
        --namespace kagent \
        --create-namespace && \
      rm -rf "$TMP_DIR"
@@ -391,10 +391,10 @@ Health check endpoints are available on port 8081:
 **Solutions**:
 ```bash
 # Check controller logs
-kubectl logs -n kagent deployment/khook-controller
+kubectl logs -n kagent deployment/khook
 
 # Verify RBAC permissions
-kubectl auth can-i get events --as=system:serviceaccount:kagent:khook-controller
+kubectl auth can-i get events --as=system:serviceaccount:kagent:khook
 
 # Check hook status
 kubectl describe hook your-hook-name
@@ -415,11 +415,11 @@ kubectl describe hook your-hook-name
 kubectl get secret kagent-credentials -o yaml
 
 # Test API connectivity from controller pod
-kubectl exec -n kagent deployment/khook-controller -- \
+kubectl exec -n kagent deployment/khook -- \
   curl -H "Authorization: Bearer $KAGENT_API_KEY" $KAGENT_BASE_URL/health
 
 # Check controller logs for API errors
-kubectl logs -n kagent deployment/khook-controller | grep "kagent-api"
+kubectl logs -n kagent deployment/khook | grep "kagent-api"
 ```
 
 #### Events Not Being Deduplicated
@@ -437,10 +437,10 @@ kubectl logs -n kagent deployment/khook-controller | grep "kagent-api"
 kubectl get pods -n kagent
 
 # Verify leader election is working
-kubectl logs -n kagent deployment/khook-controller | grep "leader"
+kubectl logs -n kagent deployment/khook | grep "leader"
 
 # Check system time synchronization
-kubectl exec -n kagent deployment/khook-controller -- date
+kubectl exec -n kagent deployment/khook -- date
 ```
 
 #### High Memory Usage
@@ -461,7 +461,7 @@ kubectl get hooks -A -o jsonpath='{range .items[*]}{.metadata.name}: {.status.ac
 kubectl top pod -n kagent
 
 # Adjust resource limits
-kubectl patch deployment -n kagent khook-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
+kubectl patch deployment -n kagent khook -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
 ```
 
 ### Debug Mode
@@ -469,7 +469,7 @@ kubectl patch deployment -n kagent khook-controller -p '{"spec":{"template":{"sp
 Enable debug logging for detailed troubleshooting:
 
 ```bash
-kubectl set env deployment/khook-controller -n kagent LOG_LEVEL=debug
+kubectl set env deployment/khook -n kagent LOG_LEVEL=debug
 ```
 
 ### Support

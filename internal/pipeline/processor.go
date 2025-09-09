@@ -70,7 +70,7 @@ func (p *Processor) ProcessEvent(ctx context.Context, event interfaces.Event, ho
 				"hook", match.Hook.Name,
 				"eventType", event.Type,
 				"resourceName", event.ResourceName,
-				"agentId", match.Configuration.AgentId)
+				"agentId", match.Configuration.AgentRef.Name)
 			lastError = err
 			// Continue processing other matches even if one fails
 			continue
@@ -130,7 +130,7 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 	}
 
 	// Record that the event is firing
-	if err := p.statusManager.RecordEventFiring(ctx, match.Hook, match.Event, match.Configuration.AgentId); err != nil {
+	if err := p.statusManager.RecordEventFiring(ctx, match.Hook, match.Event, match.Configuration.AgentRef.Name); err != nil {
 		p.logger.Error(err, "Failed to record event firing", "hook", hookName)
 		// Continue processing even if status recording fails
 	}
@@ -142,14 +142,14 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 	response, err := p.kagentClient.CallAgent(ctx, agentRequest)
 	if err != nil {
 		// Record the failure
-		if statusErr := p.statusManager.RecordAgentCallFailure(ctx, match.Hook, match.Event, match.Configuration.AgentId, err); statusErr != nil {
+		if statusErr := p.statusManager.RecordAgentCallFailure(ctx, match.Hook, match.Event, match.Configuration.AgentRef.Name, err); statusErr != nil {
 			p.logger.Error(statusErr, "Failed to record agent call failure", "hook", hookName)
 		}
-		return fmt.Errorf("failed to call agent %s: %w", match.Configuration.AgentId, err)
+		return fmt.Errorf("failed to call agent %s: %w", match.Configuration.AgentRef.Name, err)
 	}
 
 	// Record successful agent call
-	if err := p.statusManager.RecordAgentCallSuccess(ctx, match.Hook, match.Event, match.Configuration.AgentId, response.RequestId); err != nil {
+	if err := p.statusManager.RecordAgentCallSuccess(ctx, match.Hook, match.Event, match.Configuration.AgentRef.Name, response.RequestId); err != nil {
 		p.logger.Error(err, "Failed to record agent call success", "hook", hookName)
 		// Continue even if status recording fails
 	}
@@ -161,7 +161,7 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 		"hook", hookName,
 		"eventType", match.Event.Type,
 		"resourceName", match.Event.ResourceName,
-		"agentId", match.Configuration.AgentId,
+		"agentId", match.Configuration.AgentRef.Name,
 		"requestId", response.RequestId)
 
 	return nil
@@ -173,7 +173,7 @@ func (p *Processor) createAgentRequest(match EventMatch) interfaces.AgentRequest
 	prompt := p.expandPromptTemplate(match.Configuration.Prompt, match.Event)
 
 	return interfaces.AgentRequest{
-		AgentId:      match.Configuration.AgentId,
+		AgentId:      match.Configuration.AgentRef.Name,
 		Prompt:       prompt,
 		EventName:    match.Event.Type,
 		EventTime:    match.Event.Timestamp,

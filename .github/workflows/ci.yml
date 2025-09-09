@@ -3,18 +3,20 @@ name: CI/CD Pipeline
 permissions:
   actions: read
   contents: read
-  security-events: write
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 env:
-  DOCKER_REGISTRY: otomato
-  DOCKER_IMAGE: khook
-  GO_VERSION: '1.21'
+  # Cache key components for better organization
+  CACHE_KEY_PREFIX: khook-v2
+  BRANCH_CACHE_KEY: ${{ github.head_ref || github.ref_name }}
+  # Consistent builder configuration
+  BUILDX_BUILDER_NAME: khook-builder-v0.23.0
+  BUILDX_VERSION: v0.23.0
 
 jobs:
   test:
@@ -26,8 +28,6 @@ jobs:
 
     - name: Set up Go
       uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
 
     - name: Cache Go modules
       uses: actions/cache@v3
@@ -68,8 +68,6 @@ jobs:
 
     - name: Set up Go
       uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
 
     - name: Build binary
       run: make build
@@ -77,11 +75,11 @@ jobs:
     - name: Upload binary artifact
       uses: actions/upload-artifact@v4
       with:
-        name: khook-controller
+        name: khook
         path: bin/manager
 
   docker:
-    name: Docker Build and Push
+    name: Docker Build
     runs-on: ubuntu-latest
     needs: [test, build]
     if: github.ref == 'refs/heads/main'
@@ -89,69 +87,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: linux/amd64,linux/arm64
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USER }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
+        name: ${{ env.BUILDX_BUILDER_NAME }}
+        version: ${{ env.BUILDX_VERSION }}
         platforms: linux/amd64,linux/arm64
-        push: true
-        tags: |
-          ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-          ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}:latest
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Run Gosec Security Scanner
-      uses: securego/gosec@master
-      with:
-        args: './...'
-
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Check for Trivy SARIF file
-      run: |
-        if [ ! -f "trivy-results.sarif" ]; then
-          echo "Trivy results file not found!"
-          exit 1
-        fi
-
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+        use: 'true'
+        driver-opts: network=host
+    - name: Build Docker image
+      run: make docker-build

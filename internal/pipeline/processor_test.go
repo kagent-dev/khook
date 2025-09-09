@@ -185,8 +185,10 @@ func TestProcessor_ProcessEvent_Success(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "test-agent",
-			Prompt:    "Handle pod restart for {{.ResourceName}}",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle pod restart for {{.ResourceName}}",
 		},
 	})
 
@@ -237,8 +239,10 @@ func TestProcessor_ProcessEvent_DuplicateEvent(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "test-agent",
-			Prompt:    "Handle pod restart",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle pod restart",
 		},
 	})
 
@@ -275,8 +279,10 @@ func TestProcessor_ProcessEvent_AgentCallFailure(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "test-agent",
-			Prompt:    "Handle pod restart",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle pod restart",
 		},
 	})
 
@@ -317,16 +323,20 @@ func TestProcessor_ProcessEvent_MultipleHooks(t *testing.T) {
 	hook1 := createTestHook("hook1", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "agent1",
-			Prompt:    "Agent 1 prompt",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "agent1",
+			},
+			Prompt: "Agent 1 prompt",
 		},
 	})
 
 	hook2 := createTestHook("hook2", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "agent2",
-			Prompt:    "Agent 2 prompt",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "agent2",
+			},
+			Prompt: "Agent 2 prompt",
 		},
 	})
 
@@ -383,8 +393,10 @@ func TestProcessor_ProcessEvent_NoMatchingHooks(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "oom-kill",
-			AgentId:   "test-agent",
-			Prompt:    "Handle OOM kill",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle OOM kill",
 		},
 	})
 
@@ -433,7 +445,7 @@ func TestProcessor_UpdateHookStatuses(t *testing.T) {
 
 	// Create test data
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
-		{EventType: "pod-restart", AgentId: "agent1", Prompt: "prompt1"},
+		{EventType: "pod-restart", AgentRef: v1alpha2.ObjectReference{Name: "agent1"}, Prompt: "prompt1"},
 	})
 	hooks := []*v1alpha2.Hook{hook}
 
@@ -473,7 +485,7 @@ func TestProcessor_CleanupExpiredEvents(t *testing.T) {
 
 	// Create test data
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
-		{EventType: "pod-restart", AgentId: "agent1", Prompt: "prompt1"},
+		{EventType: "pod-restart", AgentRef: v1alpha2.ObjectReference{Name: "agent1"}, Prompt: "prompt1"},
 	})
 	hooks := []*v1alpha2.Hook{hook}
 

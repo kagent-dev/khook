@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: production-monitoring
-  namespace: production
+  namespace: kagent
   labels:
     environment: production
     monitoring-type: comprehensive
@@ -15,7 +15,8 @@ spec:
   eventConfigurations:
   # Critical: Pod restarts in production
   - eventType: pod-restart
-    agentId: kagent/incident-manager
+    agentRef:
+      name: incident-manager
     prompt: |
       🚨 PRODUCTION ALERT: Pod restart detected
       

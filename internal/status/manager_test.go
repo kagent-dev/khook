@@ -53,7 +53,7 @@ func TestUpdateHookStatus(t *testing.T) {
 					EventConfigurations: []v1alpha2.EventConfiguration{
 						{
 							EventType: "pod-restart",
-							AgentId:   "test-agent",
+							AgentRef:  v1alpha2.ObjectReference{Name: "test-agent"},
 							Prompt:    "test prompt",
 						},
 					},
@@ -81,7 +81,7 @@ func TestUpdateHookStatus(t *testing.T) {
 					EventConfigurations: []v1alpha2.EventConfiguration{
 						{
 							EventType: "pod-pending",
-							AgentId:   "test-agent",
+							AgentRef:  v1alpha2.ObjectReference{Name: "test-agent"},
 							Prompt:    "test prompt",
 						},
 					},

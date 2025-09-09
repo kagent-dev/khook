@@ -91,8 +91,10 @@ func TestEventProcessingIntegration(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "restart-agent",
-					Prompt:    "Pod {{.ResourceName}} restarted in {{.Namespace}}",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "restart-agent",
+					},
+					Prompt: "Pod {{.ResourceName}} restarted in {{.Namespace}}",
 				},
 			},
 		},
@@ -107,13 +109,17 @@ func TestEventProcessingIntegration(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "multi-restart-agent",
-					Prompt:    "Multi-hook: Pod {{.ResourceName}} restarted",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "multi-restart-agent",
+					},
+					Prompt: "Multi-hook: Pod {{.ResourceName}} restarted",
 				},
 				{
 					EventType: "oom-kill",
-					AgentId:   "oom-agent",
-					Prompt:    "OOM kill detected for {{.ResourceName}}",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "oom-agent",
+					},
+					Prompt: "OOM kill detected for {{.ResourceName}}",
 				},
 			},
 		},
@@ -293,8 +299,10 @@ func TestEventProcessingWithErrors(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "failing-agent",
-					Prompt:    "This will fail",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "failing-agent",
+					},
+					Prompt: "This will fail",
 				},
 			},
 		},
@@ -309,8 +317,10 @@ func TestEventProcessingWithErrors(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "working-agent",
-					Prompt:    "This will work",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "working-agent",
+					},
+					Prompt: "This will work",
 				},
 			},
 		},

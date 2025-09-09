@@ -1,4 +1,4 @@
-# Default values for khook-controller
+# Default values for khook
 replicaCount: 1
 
 image:
@@ -24,7 +24,7 @@ controller:
   logFormat: "json"
   leaderElection:
     enabled: true
-    resourceName: "khook-controller-leader-election"
+    resourceName: "khook-leader-election"
   deduplication:
     timeoutMinutes: 10
     cleanupIntervalMinutes: 5

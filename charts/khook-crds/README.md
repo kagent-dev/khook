@@ -17,7 +17,7 @@ helm install khook-crds ./charts/kagent-hook-crds \
 Install the controller after CRDs are installed:
 
 ```bash
-helm install khook-controller ./charts/kagent-hook-controller \
+helm install khook ./charts/kagent-hook-controller \
   --namespace kagent \
   --create-namespace
 ```
@@ -25,6 +25,6 @@ helm install khook-controller ./charts/kagent-hook-controller \
 ## Uninstall
 
 ```bash
-helm uninstall khook-controller -n kagent
+helm uninstall khook -n kagent
 helm uninstall khook-crds -n kagent
 ```
