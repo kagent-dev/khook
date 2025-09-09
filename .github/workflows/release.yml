@@ -73,6 +73,8 @@ jobs:
       run: make helm-publish
 
   release:
+    needs:
+    - push-helm-chart
     name: Create Release
     runs-on: ubuntu-latest
     steps:
@@ -81,31 +83,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Extract tag name
-      id: tag
-      run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-    - name: Generate release manifests
-      run: |
-        mkdir -p release
-        # Generate install manifest
-        cat > release/install.yaml << EOF
-        # KHook Controller Installation Manifest
-        # Version: ${{ steps.tag.outputs.tag }}
-        ---
-        EOF
-        cat config/crd/bases/kagent.dev_hooks.yaml >> release/install.yaml
-        echo "---" >> release/install.yaml
-        # Add RBAC and deployment manifests here when they exist
-        
-        # Generate CRD-only manifest
-        cp config/crd/bases/kagent.dev_hooks.yaml release/crds.yaml
-
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
       with:
-        tag_name: ${{ steps.tag.outputs.tag }}
-        name: Release ${{ steps.tag.outputs.tag }}
         draft: false
         prerelease: false
         generate_release_notes: true
