@@ -124,6 +124,19 @@ kustomize-build: ## Build kustomized manifests.
 
 ##@ Helm
 
+.PHONY: helm-cleanup
+helm-cleanup:
+	rm -f ./$(HELM_DIST_FOLDER)/*.tgz
+
+.PHONY: helm-version
+helm-version: 
+	VERSION=$(VERSION) envsubst < helm/khook-crds/Chart-template.yaml > helm/khook-crds/Chart.yaml
+	VERSION=$(VERSION) envsubst < helm/khook/Chart-template.yaml > helm/khook/Chart.yaml
+	helm dependency update helm/khook
+	helm dependency update helm/khook-crds
+	helm package -d $(HELM_DIST_FOLDER) helm/khook-crds
+	helm package -d $(HELM_DIST_FOLDER) helm/khook
+
 .PHONY: helm-lint
 helm-lint: ## Lint Helm chart.
 	helm lint helm/khook
