@@ -59,9 +59,13 @@ jobs:
         name: codecov-umbrella
 
   docker:
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5001:5000
     name: Docker Build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -79,4 +83,6 @@ jobs:
         use: 'true'
         driver-opts: network=host
     - name: Build Docker image
+      env:
+        DOCKER_BUILD_ARGS: --push --platform linux/amd64,linux/arm64
       run: make docker-build
