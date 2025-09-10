@@ -2,8 +2,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo-dark.svg">
-    <img src="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/kagent-dev/khook/refs/heads/main/docs/khook-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/kagent-dev/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
   </picture>
 </p>
 
