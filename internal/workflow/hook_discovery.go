@@ -6,7 +6,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	kagentv1alpha2 "github.com/antweiss/khook/api/v1alpha2"
+	kagentv1alpha2 "github.com/kagent-dev/khook/api/v1alpha2"
 )
 
 // HookDiscoveryService handles cluster-wide discovery of Hook resources

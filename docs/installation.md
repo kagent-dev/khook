@@ -17,7 +17,7 @@ Install using the Helm charts from this repository (install CRDs first, then con
 
 ```bash
 # Clone the repository
-git clone https://github.com/antweiss/khook.git
+git clone https://github.com/kagent-dev/khook.git
 cd khook
 
 # Create namespace (recommended to pre-create to avoid Helm ownership issues)
@@ -48,7 +48,7 @@ Chart location: helm/khook (see repo tree).
 
 ```bash
 TMP_DIR="$(mktemp -d)" && \
-  git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
+  git clone --depth 1 https://github.com/kagent-dev/khook.git "$TMP_DIR/khook" && \
   helm install khook-crds "$TMP_DIR/khook/helm/khook-crds" \
     --namespace kagent \
     --create-namespace && \
@@ -64,7 +64,7 @@ For custom deployments or development:
 
 ```bash
 # Clone the repository
-git clone https://github.com/antweiss/khook.git
+git clone https://github.com/kagent-dev/khook.git
 cd khook
 
 # Install CRDs
@@ -327,10 +327,10 @@ helm upgrade khook ./helm/khook \
 
 ```bash
 # Update CRDs first
-kubectl apply -f https://github.com/antweiss/khook/releases/latest/download/crds.yaml
+kubectl apply -f https://github.com/kagent-dev/khook/releases/latest/download/crds.yaml
 
 # Update controller
-kubectl apply -f https://github.com/antweiss/khook/releases/latest/download/install.yaml
+kubectl apply -f https://github.com/kagent-dev/khook/releases/latest/download/install.yaml
 ```
 
 ## Uninstallation

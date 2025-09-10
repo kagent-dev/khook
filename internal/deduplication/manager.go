@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/interfaces"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

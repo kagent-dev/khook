@@ -12,11 +12,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/deduplication"
-	"github.com/antweiss/khook/internal/event"
-	"github.com/antweiss/khook/internal/interfaces"
-	"github.com/antweiss/khook/internal/status"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/deduplication"
+	"github.com/kagent-dev/khook/internal/event"
+	"github.com/kagent-dev/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/status"
 )
 
 // MockKagentClientForIntegration provides a simple mock for integration testing
@@ -35,7 +35,7 @@ func NewMockKagentClientForIntegration() *MockKagentClientForIntegration {
 func (m *MockKagentClientForIntegration) CallAgent(ctx context.Context, request interfaces.AgentRequest) (*interfaces.AgentResponse, error) {
 	m.calls = append(m.calls, request)
 
-	if response, exists := m.responses[request.AgentId]; exists {
+	if response, exists := m.responses[request.AgentRef.String()]; exists {
 		if response == nil {
 			return nil, errors.New("mock agent call failed")
 		}
@@ -46,7 +46,7 @@ func (m *MockKagentClientForIntegration) CallAgent(ctx context.Context, request 
 	return &interfaces.AgentResponse{
 		Success:   true,
 		Message:   "Mock response",
-		RequestId: "mock-request-" + request.AgentId,
+		RequestId: "mock-request-" + request.AgentRef.String(),
 	}, nil
 }
 
@@ -154,14 +154,14 @@ func TestEventProcessingIntegration(t *testing.T) {
 
 		// Verify first call (restart-agent)
 		call1 := calls[0]
-		assert.Equal(t, "restart-agent", call1.AgentId)
+		assert.Equal(t, "restart-agent", call1.AgentRef.Name)
 		assert.Equal(t, "pod-restart", call1.EventName)
 		assert.Equal(t, "test-pod-1", call1.ResourceName)
 		assert.Contains(t, call1.Prompt, "Pod test-pod-1 restarted in default")
 
 		// Verify second call (multi-restart-agent)
 		call2 := calls[1]
-		assert.Equal(t, "multi-restart-agent", call2.AgentId)
+		assert.Equal(t, "multi-restart-agent", call2.AgentRef.Name)
 		assert.Equal(t, "pod-restart", call2.EventName)
 		assert.Equal(t, "test-pod-1", call2.ResourceName)
 		assert.Contains(t, call2.Prompt, "Multi-hook: Pod test-pod-1 restarted")
@@ -226,7 +226,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 		assert.Len(t, calls, 1, "Should call only the OOM agent")
 
 		call := calls[0]
-		assert.Equal(t, "oom-agent", call.AgentId)
+		assert.Equal(t, "oom-agent", call.AgentRef.Name)
 		assert.Equal(t, "oom-kill", call.EventName)
 		assert.Equal(t, "test-pod-2", call.ResourceName)
 		assert.Contains(t, call.Prompt, "OOM kill detected for test-pod-2")
@@ -360,7 +360,7 @@ func TestEventProcessingWithErrors(t *testing.T) {
 	// Verify both agents were attempted
 	agentIds := make(map[string]bool)
 	for _, call := range calls {
-		agentIds[call.AgentId] = true
+		agentIds[call.AgentRef.Name] = true
 	}
 	assert.True(t, agentIds["failing-agent"])
 	assert.True(t, agentIds["working-agent"])

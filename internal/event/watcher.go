@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 // Watcher implements the EventWatcher interface

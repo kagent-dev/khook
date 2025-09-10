@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/interfaces"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -66,7 +67,7 @@ func TestClient_CallAgent(t *testing.T) {
 		client := NewClient(config, logger)
 
 		request := interfaces.AgentRequest{
-			AgentId:      "test-agent",
+			AgentRef:     types.NamespacedName{Name: "test-agent"},
 			Prompt:       "Test prompt",
 			EventName:    "pod-restart",
 			EventTime:    time.Now(),
@@ -94,7 +95,7 @@ func TestClient_CallAgent(t *testing.T) {
 		defer cancel()
 
 		request := interfaces.AgentRequest{
-			AgentId:      "test-agent",
+			AgentRef:     types.NamespacedName{Name: "test-agent"},
 			Prompt:       "Test prompt",
 			EventName:    "pod-restart",
 			EventTime:    time.Now(),

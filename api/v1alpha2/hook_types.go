@@ -29,7 +29,7 @@ type EventConfiguration struct {
 	// +kubebuilder:validation:Required
 	EventType string `json:"eventType"`
 
-	// AgentId specifies the Kagent agent to call when this event occurs
+	// AgentRef specifies the Kagent agent to call when this event occurs
 	// +kubebuilder:validation:Required
 	AgentRef ObjectReference `json:"agentRef"`
 
@@ -94,7 +94,7 @@ func (h *Hook) validateEventConfiguration(config EventConfiguration, index int) 
 		return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed", index, config.EventType)
 	}
 
-	// Validate AgentId
+	// Validate AgentRef
 	if strings.TrimSpace(config.AgentRef.Name) == "" {
 		return fmt.Errorf("event configuration %d: agentRef.name cannot be empty", index)
 	}

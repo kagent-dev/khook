@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 // Processor handles the complete event processing pipeline
@@ -70,7 +71,7 @@ func (p *Processor) ProcessEvent(ctx context.Context, event interfaces.Event, ho
 				"hook", match.Hook.Name,
 				"eventType", event.Type,
 				"resourceName", event.ResourceName,
-				"agentId", match.Configuration.AgentRef.Name)
+				"agentRef", match.Configuration.AgentRef)
 			lastError = err
 			// Continue processing other matches even if one fails
 			continue
@@ -129,27 +130,36 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 		return fmt.Errorf("failed to record event in deduplication manager: %w", err)
 	}
 
+	agentRefNs := match.Hook.Namespace
+	if match.Configuration.AgentRef.Namespace != nil {
+		agentRefNs = *match.Configuration.AgentRef.Namespace
+	}
+	agentRef := types.NamespacedName{
+		Name:      match.Configuration.AgentRef.Name,
+		Namespace: agentRefNs,
+	}
+
 	// Record that the event is firing
-	if err := p.statusManager.RecordEventFiring(ctx, match.Hook, match.Event, match.Configuration.AgentRef.Name); err != nil {
+	if err := p.statusManager.RecordEventFiring(ctx, match.Hook, match.Event, agentRef); err != nil {
 		p.logger.Error(err, "Failed to record event firing", "hook", hookName)
 		// Continue processing even if status recording fails
 	}
 
 	// Create agent request with event context
-	agentRequest := p.createAgentRequest(match)
+	agentRequest := p.createAgentRequest(match, agentRef)
 
 	// Call the Kagent agent
 	response, err := p.kagentClient.CallAgent(ctx, agentRequest)
 	if err != nil {
 		// Record the failure
-		if statusErr := p.statusManager.RecordAgentCallFailure(ctx, match.Hook, match.Event, match.Configuration.AgentRef.Name, err); statusErr != nil {
+		if statusErr := p.statusManager.RecordAgentCallFailure(ctx, match.Hook, match.Event, agentRef, err); statusErr != nil {
 			p.logger.Error(statusErr, "Failed to record agent call failure", "hook", hookName)
 		}
-		return fmt.Errorf("failed to call agent %s: %w", match.Configuration.AgentRef.Name, err)
+		return fmt.Errorf("failed to call agent %s: %w", agentRef.Name, err)
 	}
 
 	// Record successful agent call
-	if err := p.statusManager.RecordAgentCallSuccess(ctx, match.Hook, match.Event, match.Configuration.AgentRef.Name, response.RequestId); err != nil {
+	if err := p.statusManager.RecordAgentCallSuccess(ctx, match.Hook, match.Event, agentRef, response.RequestId); err != nil {
 		p.logger.Error(err, "Failed to record agent call success", "hook", hookName)
 		// Continue even if status recording fails
 	}
@@ -161,19 +171,19 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 		"hook", hookName,
 		"eventType", match.Event.Type,
 		"resourceName", match.Event.ResourceName,
-		"agentId", match.Configuration.AgentRef.Name,
+		"agentRef", agentRef,
 		"requestId", response.RequestId)
 
 	return nil
 }
 
 // createAgentRequest creates an agent request from an event match
-func (p *Processor) createAgentRequest(match EventMatch) interfaces.AgentRequest {
+func (p *Processor) createAgentRequest(match EventMatch, agentRef types.NamespacedName) interfaces.AgentRequest {
 	// Expand prompt template with event context
 	prompt := p.expandPromptTemplate(match.Configuration.Prompt, match.Event)
 
 	return interfaces.AgentRequest{
-		AgentId:      match.Configuration.AgentRef.Name,
+		AgentRef:     agentRef,
 		Prompt:       prompt,
 		EventName:    match.Event.Type,
 		EventTime:    match.Event.Timestamp,

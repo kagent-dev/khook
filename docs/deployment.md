@@ -18,7 +18,7 @@ This method uses Kubernetes native Kustomize for deployment.
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/antweiss/khook.git
+git clone https://github.com/kagent-dev/khook.git
 cd khook
 ```
 

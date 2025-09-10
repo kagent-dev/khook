@@ -9,9 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 // Mock implementations for testing
@@ -98,8 +99,8 @@ func (m *MockStatusManager) UpdateHookStatus(ctx context.Context, hook interface
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordEventFiring(ctx context.Context, hook interface{}, event interfaces.Event, agentId string) error {
-	args := m.Called(ctx, hook, event, agentId)
+func (m *MockStatusManager) RecordEventFiring(ctx context.Context, hook interface{}, event interfaces.Event, agentRef types.NamespacedName) error {
+	args := m.Called(ctx, hook, event, agentRef)
 	return args.Error(0)
 }
 
@@ -108,18 +109,18 @@ func (m *MockStatusManager) RecordEventResolved(ctx context.Context, hook interf
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordError(ctx context.Context, hook interface{}, event interfaces.Event, err error, agentId string) error {
-	args := m.Called(ctx, hook, event, err, agentId)
+func (m *MockStatusManager) RecordError(ctx context.Context, hook interface{}, event interfaces.Event, err error, agentRef types.NamespacedName) error {
+	args := m.Called(ctx, hook, event, err, agentRef)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordAgentCallSuccess(ctx context.Context, hook interface{}, event interfaces.Event, agentId, requestId string) error {
-	args := m.Called(ctx, hook, event, agentId, requestId)
+func (m *MockStatusManager) RecordAgentCallSuccess(ctx context.Context, hook interface{}, event interfaces.Event, agentRef types.NamespacedName, requestId string) error {
+	args := m.Called(ctx, hook, event, agentRef, requestId)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordAgentCallFailure(ctx context.Context, hook interface{}, event interfaces.Event, agentId string, err error) error {
-	args := m.Called(ctx, hook, event, agentId, err)
+func (m *MockStatusManager) RecordAgentCallFailure(ctx context.Context, hook interface{}, event interfaces.Event, agentRef types.NamespacedName, err error) error {
+	args := m.Called(ctx, hook, event, agentRef, err)
 	return args.Error(0)
 }
 
@@ -208,7 +209,7 @@ func TestProcessor_ProcessEvent_Success(t *testing.T) {
 		RequestId: "test-request-id",
 	}
 	mockKagentClient.On("CallAgent", ctx, mock.MatchedBy(func(req interfaces.AgentRequest) bool {
-		return req.AgentId == "test-agent" &&
+		return req.AgentRef.Name == "test-agent" &&
 			req.EventName == "pod-restart" &&
 			req.ResourceName == "test-pod"
 	})).Return(expectedResponse, nil)
@@ -358,11 +359,11 @@ func TestProcessor_ProcessEvent_MultipleHooks(t *testing.T) {
 	response2 := &interfaces.AgentResponse{Success: true, Message: "Success 2", RequestId: "req2"}
 
 	mockKagentClient.On("CallAgent", ctx, mock.MatchedBy(func(req interfaces.AgentRequest) bool {
-		return req.AgentId == "agent1"
+		return req.AgentRef.Name == "agent1"
 	})).Return(response1, nil)
 
 	mockKagentClient.On("CallAgent", ctx, mock.MatchedBy(func(req interfaces.AgentRequest) bool {
-		return req.AgentId == "agent2"
+		return req.AgentRef.Name == "agent2"
 	})).Return(response2, nil)
 
 	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook1, event, "agent1", "req1").Return(nil)

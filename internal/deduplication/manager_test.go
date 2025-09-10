@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/interfaces"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

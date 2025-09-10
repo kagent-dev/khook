@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: ci-cd-monitoring
-  namespace: kagent
+  namespace: ci-cd
   labels:
     monitoring-type: ci-cd
     automation: deployment
@@ -32,6 +32,7 @@ spec:
   - eventType: pod-restart
     agentRef:
       name: ci-cd-engineer
+      namespace: kagent
     prompt: |
       🔧 CI/CD ALERT: Build/test pod restarted
       

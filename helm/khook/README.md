@@ -14,7 +14,7 @@ This Helm chart deploys the Kagent Hook Controller, a Kubernetes controller that
 
 ```bash
 # Clone the repository and install from local chart
-git clone https://github.com/antweiss/khook.git
+git clone https://github.com/kagent-dev/khook.git
 cd khook
 helm install khook ./helm/khook \
   --namespace kagent \

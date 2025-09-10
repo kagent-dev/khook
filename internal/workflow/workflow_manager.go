@@ -8,10 +8,10 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	kagentv1alpha2 "github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/event"
-	"github.com/antweiss/khook/internal/interfaces"
-	"github.com/antweiss/khook/internal/pipeline"
+	kagentv1alpha2 "github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/event"
+	"github.com/kagent-dev/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/pipeline"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

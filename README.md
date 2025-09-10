@@ -68,7 +68,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
 
 1. **Install via Helm (recommended)**:
    ```bash
-   git clone https://github.com/antweiss/khook.git
+   git clone https://github.com/kagent-dev/khook.git
    cd khook
    # Install CRDs first
    helm install khook-crds ./helm/khook-crds \
@@ -83,7 +83,7 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    One-liner (no checkout):
    ```bash
    TMP_DIR="$(mktemp -d)" && \
-     git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
+     git clone --depth 1 https://github.com/kagent-dev/khook.git "$TMP_DIR/khook" && \
      helm install khook-crds "$TMP_DIR/khook/helm/khook-crds" \
        --namespace kagent \
        --create-namespace && \
@@ -476,7 +476,7 @@ kubectl set env deployment/khook -n kagent LOG_LEVEL=debug
 
 For additional support:
 
-1. Check the [GitHub Issues](https://github.com/antweiss/khook/issues)
+1. Check the [GitHub Issues](https://github.com/kagent-dev/khook/issues)
 2. Review the [troubleshooting guide](docs/troubleshooting.md)
 3. Join the [Kagent community](https://community.kagent.dev)
 
@@ -493,7 +493,7 @@ For additional support:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/antweiss/khook.git
+   git clone https://github.com/kagent-dev/khook.git
    cd khook
    ```
 

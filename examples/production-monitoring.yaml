@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: production-monitoring
-  namespace: kagent
+  namespace: production
   labels:
     environment: production
     monitoring-type: comprehensive
@@ -17,6 +17,7 @@ spec:
   - eventType: pod-restart
     agentRef:
       name: incident-manager
+      namespace: kagent
     prompt: |
       🚨 PRODUCTION ALERT: Pod restart detected
       
@@ -59,7 +60,9 @@ spec:
 
   # Pod stuck in pending state
   - eventType: pod-pending
-    agentId: kagent/scheduling-analyzer
+    agentRef:
+      name: scheduling-analyzer
+      namespace: kagent
     prompt: |
       ⚠️ PRODUCTION ISSUE: Pod scheduling problem
       
@@ -100,7 +103,9 @@ spec:
 
   # Health probe failures
   - eventType: probe-failed
-    agentId: kagent/health-checker
+    agentRef:
+      name: health-checker
+      namespace: kagent
     prompt: |
       🔍 PRODUCTION HEALTH ISSUE: Probe failure detected
       
@@ -142,7 +147,9 @@ spec:
 
   # Critical: OOM kills in production
   - eventType: oom-kill
-    agentId: kagent/capacity-planner
+    agentRef:
+      name: capacity-planner
+      namespace: kagent
     prompt: |
       🚨 CRITICAL PRODUCTION ISSUE: OOM Kill Event
       

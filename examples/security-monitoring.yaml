@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: security-monitoring
-  namespace: kagent
+  namespace: security
   labels:
     monitoring-type: security
     priority: critical
@@ -16,6 +16,7 @@ spec:
   - eventType: pod-restart
     agentRef:
       name: security-analyst
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: SECURITY ALERT - Pod {{.ResourceName}} restarted at {{.EventTime}}. Security analysis required.
 
@@ -33,6 +34,7 @@ spec:
   - eventType: probe-failed
     agentRef:
       name: security-analyst
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: SECURITY ALERT - Health probe failed for {{.ResourceName}} at {{.EventTime}}. Security implications.
 

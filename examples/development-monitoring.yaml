@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: dev-monitoring
-  namespace: kagent
+  namespace: development
   labels:
     environment: development
     monitoring-type: educational
@@ -16,6 +16,7 @@ spec:
   - eventType: pod-restart
     agentRef:
       name: dev-helper
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: DEV ENV - Pod {{.ResourceName}} restarted at {{.EventTime}}. Debug and fix immediately.
 
@@ -32,6 +33,7 @@ spec:
   - eventType: oom-kill
     agentRef:
       name: dev-helper
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: DEV ENV - OOM kill for {{.ResourceName}} at {{.EventTime}}. Optimize memory immediately.
 

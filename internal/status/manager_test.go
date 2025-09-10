@@ -10,12 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 func TestNewManager(t *testing.T) {
@@ -153,7 +154,7 @@ func TestRecordEventFiring(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordEventFiring(ctx, hook, event, "test-agent")
+	err := manager.RecordEventFiring(ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"})
 
 	assert.NoError(t, err)
 
@@ -226,7 +227,7 @@ func TestRecordError(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordError(ctx, hook, event, testError, "test-agent")
+	err := manager.RecordError(ctx, hook, event, testError, types.NamespacedName{Name: "test-agent", Namespace: "default"})
 
 	assert.NoError(t, err)
 
@@ -266,7 +267,7 @@ func TestRecordAgentCallSuccess(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordAgentCallSuccess(ctx, hook, event, "test-agent", "req-123")
+	err := manager.RecordAgentCallSuccess(ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}, "req-123")
 
 	assert.NoError(t, err)
 
@@ -308,7 +309,7 @@ func TestRecordAgentCallFailure(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordAgentCallFailure(ctx, hook, event, "test-agent", testError)
+	err := manager.RecordAgentCallFailure(ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}, testError)
 
 	assert.NoError(t, err)
 

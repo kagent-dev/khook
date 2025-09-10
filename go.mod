@@ -1,4 +1,4 @@
-module github.com/antweiss/khook
+module github.com/kagent-dev/khook
 
 go 1.24.6
 

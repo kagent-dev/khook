@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: performance-monitoring
-  namespace: kagent
+  namespace: performance
   labels:
     monitoring-type: performance
     focus: optimization
@@ -16,6 +16,7 @@ spec:
   - eventType: oom-kill
     agentRef:
       name: performance-optimizer
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: PERFORMANCE ALERT - OOM kill for {{.ResourceName}} at {{.EventTime}}. Optimize immediately.
 
@@ -32,6 +33,7 @@ spec:
   - eventType: pod-pending
     agentRef:
       name: capacity-planner
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: CAPACITY ALERT - Pod {{.ResourceName}} pending since {{.EventTime}}. Resolve scheduling issue.
 
@@ -48,6 +50,7 @@ spec:
   - eventType: pod-restart
     agentRef:
       name: reliability-engineer
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: RELIABILITY ALERT - Pod {{.ResourceName}} restarted at {{.EventTime}}. Performance analysis required.
 

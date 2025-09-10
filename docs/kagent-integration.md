@@ -316,4 +316,4 @@ For integration issues:
 1. **Check Controller Logs**: `kubectl logs -n kagent deployment/khook`
 2. **Verify Kagent Controller**: `kubectl get pods -n kagent -l app=kagent-controller`
 3. **Test Connectivity**: Use the health check commands above
-4. **GitHub Issues**: [https://github.com/antweiss/khook/issues](https://github.com/antweiss/khook/issues)
+4. **GitHub Issues**: [https://github.com/kagent-dev/khook/issues](https://github.com/kagent-dev/khook/issues)

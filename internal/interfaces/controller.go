@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/antweiss/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ControllerManager orchestrates the controller lifecycle and watches
@@ -45,7 +46,7 @@ type EventWatcher interface {
 
 // AgentRequest represents a request to the Kagent API
 type AgentRequest struct {
-	AgentId      string                 `json:"agentId"`
+	AgentRef     types.NamespacedName   `json:"agentId"`
 	Prompt       string                 `json:"prompt"`
 	EventName    string                 `json:"eventName"`
 	EventTime    time.Time              `json:"eventTime"`
@@ -97,11 +98,11 @@ type EventRecorder interface {
 // StatusManager handles status updates and event recording for Hook resources
 type StatusManager interface {
 	UpdateHookStatus(ctx context.Context, hook interface{}, activeEvents []ActiveEvent) error
-	RecordEventFiring(ctx context.Context, hook interface{}, event Event, agentId string) error
+	RecordEventFiring(ctx context.Context, hook interface{}, event Event, agentRef types.NamespacedName) error
 	RecordEventResolved(ctx context.Context, hook interface{}, eventType, resourceName string) error
-	RecordError(ctx context.Context, hook interface{}, event Event, err error, agentId string) error
-	RecordAgentCallSuccess(ctx context.Context, hook interface{}, event Event, agentId, requestId string) error
-	RecordAgentCallFailure(ctx context.Context, hook interface{}, event Event, agentId string, err error) error
+	RecordError(ctx context.Context, hook interface{}, event Event, err error, agentRef types.NamespacedName) error
+	RecordAgentCallSuccess(ctx context.Context, hook interface{}, event Event, agentRef types.NamespacedName, requestId string) error
+	RecordAgentCallFailure(ctx context.Context, hook interface{}, event Event, agentRef types.NamespacedName, err error) error
 	RecordDuplicateEvent(ctx context.Context, hook interface{}, event Event) error
 	GetHookStatus(ctx context.Context, hookName, namespace string) (*v1alpha2.HookStatus, error)
 	LogControllerStartup(ctx context.Context, version string, config map[string]interface{})
