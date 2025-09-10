@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 
@@ -54,8 +55,8 @@ func (m *MockKagentClientForIntegration) Authenticate() error {
 	return nil
 }
 
-func (m *MockKagentClientForIntegration) SetResponse(agentId string, response *interfaces.AgentResponse) {
-	m.responses[agentId] = response
+func (m *MockKagentClientForIntegration) SetResponse(agentRef types.NamespacedName, response *interfaces.AgentResponse) {
+	m.responses[agentRef.String()] = response
 }
 
 func (m *MockKagentClientForIntegration) GetCalls() []interfaces.AgentRequest {
@@ -330,8 +331,8 @@ func TestEventProcessingWithErrors(t *testing.T) {
 	ctx := context.Background()
 
 	// Set up one agent to fail and one to succeed
-	mockKagentClient.SetResponse("failing-agent", nil) // This will cause an error
-	mockKagentClient.SetResponse("working-agent", &interfaces.AgentResponse{
+	mockKagentClient.SetResponse(types.NamespacedName{Name: "failing-agent", Namespace: "default"}, nil) // This will cause an error
+	mockKagentClient.SetResponse(types.NamespacedName{Name: "working-agent", Namespace: "default"}, &interfaces.AgentResponse{
 		Success:   true,
 		Message:   "Success",
 		RequestId: "working-request",
