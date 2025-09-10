@@ -11,7 +11,6 @@ import (
 	"github.com/kagent-dev/kagent/go/pkg/client"
 	"github.com/kagent-dev/kagent/go/pkg/client/api"
 	"github.com/kagent-dev/khook/internal/interfaces"
-	"k8s.io/utils/ptr"
 	a2aclient "trpc.group/trpc-go/trpc-a2a-go/client"
 	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
@@ -135,9 +134,9 @@ func (c *Client) Authenticate() error {
 func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest) (*interfaces.AgentResponse, error) {
 	// Create a session for this agent call
 	sessionName := fmt.Sprintf("hook-%s-%d", request.EventName, time.Now().Unix())
-
+	agentRefString := request.AgentRef.String()
 	sessionReq := &api.SessionRequest{
-		AgentRef: ptr.To(request.AgentRef.String()),
+		AgentRef: &agentRefString,
 		Name:     &sessionName,
 	}
 
