@@ -168,12 +168,12 @@ func TestEventProcessingIntegration(t *testing.T) {
 		assert.Contains(t, call2.Prompt, "Multi-hook: Pod test-pod-1 restarted")
 
 		// Verify deduplication state
-		activeEvents1 := deduplicationManager.GetActiveEvents("default/pod-restart-hook")
+		activeEvents1 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "pod-restart-hook", Namespace: "default"})
 		assert.Len(t, activeEvents1, 1)
 		assert.Equal(t, "pod-restart", activeEvents1[0].EventType)
 		assert.Equal(t, "test-pod-1", activeEvents1[0].ResourceName)
 
-		activeEvents2 := deduplicationManager.GetActiveEvents("default/multi-event-hook")
+		activeEvents2 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "multi-event-hook", Namespace: "default"})
 		assert.Len(t, activeEvents2, 1)
 		assert.Equal(t, "pod-restart", activeEvents2[0].EventType)
 		assert.Equal(t, "test-pod-1", activeEvents2[0].ResourceName)
@@ -258,14 +258,14 @@ func TestEventProcessingIntegration(t *testing.T) {
 	// Test 5: Verify active events state
 	t.Run("VerifyActiveEventsState", func(t *testing.T) {
 		// Check active events for pod-restart-hook
-		activeEvents1 := deduplicationManager.GetActiveEvents("default/pod-restart-hook")
+		activeEvents1 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "pod-restart-hook", Namespace: "default"})
 		assert.Len(t, activeEvents1, 1)
 		assert.Equal(t, "pod-restart", activeEvents1[0].EventType)
 		assert.Equal(t, "test-pod-1", activeEvents1[0].ResourceName)
 		assert.Equal(t, "firing", activeEvents1[0].Status)
 
 		// Check active events for multi-event-hook
-		activeEvents2 := deduplicationManager.GetActiveEvents("default/multi-event-hook")
+		activeEvents2 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "multi-event-hook", Namespace: "default"})
 		assert.Len(t, activeEvents2, 2) // pod-restart and oom-kill
 
 		eventTypes := make(map[string]bool)

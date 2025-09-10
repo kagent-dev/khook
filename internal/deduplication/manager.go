@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kagent-dev/khook/internal/interfaces"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -43,12 +44,12 @@ func (m *Manager) eventKey(event interfaces.Event) string {
 }
 
 // ShouldProcessEvent determines if an event should be processed based on deduplication logic
-func (m *Manager) ShouldProcessEvent(hookName string, event interfaces.Event) bool {
-	logger := log.Log.WithName("dedup").WithValues("hook", hookName, "eventType", event.Type, "resource", event.ResourceName)
+func (m *Manager) ShouldProcessEvent(hookRef types.NamespacedName, event interfaces.Event) bool {
+	logger := log.Log.WithName("dedup").WithValues("hook", hookRef.String(), "eventType", event.Type, "resource", event.ResourceName)
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	hookEventMap, exists := m.hookEvents[hookName]
+	hookEventMap, exists := m.hookEvents[hookRef.String()]
 	if !exists {
 		// No events for this hook, should process
 		logger.V(1).Info("No existing events for hook; will process")
@@ -83,28 +84,28 @@ func (m *Manager) ShouldProcessEvent(hookName string, event interfaces.Event) bo
 }
 
 // RecordEvent records an event in the deduplication storage
-func (m *Manager) RecordEvent(hookName string, event interfaces.Event) error {
-	logger := log.Log.WithName("dedup").WithValues("hook", hookName, "eventType", event.Type, "resource", event.ResourceName)
+func (m *Manager) RecordEvent(hookRef types.NamespacedName, event interfaces.Event) error {
+	logger := log.Log.WithName("dedup").WithValues("hook", hookRef.String(), "eventType", event.Type, "resource", event.ResourceName)
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	// Initialize hook event map if it doesn't exist
-	if m.hookEvents[hookName] == nil {
-		m.hookEvents[hookName] = make(map[string]*interfaces.ActiveEvent)
+	if m.hookEvents[hookRef.String()] == nil {
+		m.hookEvents[hookRef.String()] = make(map[string]*interfaces.ActiveEvent)
 	}
 
 	key := m.eventKey(event)
 	now := time.Now()
 
 	// Check if event already exists
-	if existingEvent, exists := m.hookEvents[hookName][key]; exists {
+	if existingEvent, exists := m.hookEvents[hookRef.String()][key]; exists {
 		// Update existing event
 		existingEvent.LastSeen = now
 		existingEvent.Status = StatusFiring
 		logger.V(1).Info("Updated existing active event", "lastSeen", existingEvent.LastSeen)
 	} else {
 		// Create new event record
-		m.hookEvents[hookName][key] = &interfaces.ActiveEvent{
+		m.hookEvents[hookRef.String()][key] = &interfaces.ActiveEvent{
 			EventType:    event.Type,
 			ResourceName: event.ResourceName,
 			FirstSeen:    now,
@@ -118,21 +119,21 @@ func (m *Manager) RecordEvent(hookName string, event interfaces.Event) error {
 }
 
 // MarkNotified marks that we successfully notified the agent for this event now
-func (m *Manager) MarkNotified(hookName string, event interfaces.Event) {
+func (m *Manager) MarkNotified(hookRef types.NamespacedName, event interfaces.Event) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	if m.hookEvents[hookName] == nil {
-		m.hookEvents[hookName] = make(map[string]*interfaces.ActiveEvent)
+	if m.hookEvents[hookRef.String()] == nil {
+		m.hookEvents[hookRef.String()] = make(map[string]*interfaces.ActiveEvent)
 	}
 	key := m.eventKey(event)
 	now := time.Now()
-	if ae, ok := m.hookEvents[hookName][key]; ok {
+	if ae, ok := m.hookEvents[hookRef.String()][key]; ok {
 		ae.LastNotifiedAt = &now
 		if ae.NotifiedAt == nil {
 			ae.NotifiedAt = &now
 		}
 	} else {
-		m.hookEvents[hookName][key] = &interfaces.ActiveEvent{
+		m.hookEvents[hookRef.String()][key] = &interfaces.ActiveEvent{
 			EventType:      event.Type,
 			ResourceName:   event.ResourceName,
 			FirstSeen:      now,
@@ -145,11 +146,11 @@ func (m *Manager) MarkNotified(hookName string, event interfaces.Event) {
 }
 
 // CleanupExpiredEvents removes events that have exceeded the timeout duration
-func (m *Manager) CleanupExpiredEvents(hookName string) error {
+func (m *Manager) CleanupExpiredEvents(hookRef types.NamespacedName) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	hookEventMap, exists := m.hookEvents[hookName]
+	hookEventMap, exists := m.hookEvents[hookRef.String()]
 	if !exists {
 		// No events for this hook
 		return nil
@@ -174,18 +175,18 @@ func (m *Manager) CleanupExpiredEvents(hookName string) error {
 
 	// Clean up empty hook map
 	if len(hookEventMap) == 0 {
-		delete(m.hookEvents, hookName)
+		delete(m.hookEvents, hookRef.String())
 	}
 
 	return nil
 }
 
 // GetActiveEvents returns all active events for a specific hook
-func (m *Manager) GetActiveEvents(hookName string) []interfaces.ActiveEvent {
+func (m *Manager) GetActiveEvents(hookRef types.NamespacedName) []interfaces.ActiveEvent {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	hookEventMap, exists := m.hookEvents[hookName]
+	hookEventMap, exists := m.hookEvents[hookRef.String()]
 	if !exists {
 		return []interfaces.ActiveEvent{}
 	}
@@ -204,8 +205,8 @@ func (m *Manager) GetActiveEvents(hookName string) []interfaces.ActiveEvent {
 
 // GetActiveEventsWithStatus returns all active events with their current status
 // This method handles status calculation without race conditions
-func (m *Manager) GetActiveEventsWithStatus(hookName string) []interfaces.ActiveEvent {
-	activeEvents := m.GetActiveEvents(hookName)
+func (m *Manager) GetActiveEventsWithStatus(hookRef types.NamespacedName) []interfaces.ActiveEvent {
+	activeEvents := m.GetActiveEvents(hookRef)
 
 	now := time.Now()
 	for i := range activeEvents {

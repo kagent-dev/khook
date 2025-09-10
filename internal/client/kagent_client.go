@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -202,19 +201,7 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 		return nil, fmt.Errorf("failed to send A2A message: %w", err)
 	}
 
-	// Best-effort check whether a Task was returned (per A2A Life of a Task)
-	isTask := false
-	if res != nil {
-		rv := reflect.ValueOf(res)
-		if rv.Kind() == reflect.Ptr {
-			rv = rv.Elem()
-		}
-		if rv.IsValid() {
-			if f := rv.FieldByName("Task"); f.IsValid() && !f.IsZero() {
-				isTask = true
-			}
-		}
-	}
+	_, isTask := res.Result.(*protocol.Task)
 
 	c.logger.Info("Agent accepted message via A2A",
 		"agentRef", request.AgentRef.String(),

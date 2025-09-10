@@ -109,24 +109,27 @@ func (p *Processor) findEventMatches(event interfaces.Event, hooks []*v1alpha2.H
 
 // processEventMatch processes a single event match through the complete pipeline
 func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) error {
-	hookName := fmt.Sprintf("%s/%s", match.Hook.Namespace, match.Hook.Name)
+	hookRef := types.NamespacedName{
+		Namespace: match.Hook.Namespace,
+		Name:      match.Hook.Name,
+	}
 
 	// Check deduplication - should we process this event?
-	if !p.deduplicationManager.ShouldProcessEvent(hookName, match.Event) {
+	if !p.deduplicationManager.ShouldProcessEvent(hookRef, match.Event) {
 		p.logger.V(1).Info("Event ignored due to deduplication",
-			"hook", hookName,
+			"hook", hookRef,
 			"eventType", match.Event.Type,
 			"resourceName", match.Event.ResourceName)
 
 		// Record that we ignored a duplicate event
 		if err := p.statusManager.RecordDuplicateEvent(ctx, match.Hook, match.Event); err != nil {
-			p.logger.Error(err, "Failed to record duplicate event", "hook", hookName)
+			p.logger.Error(err, "Failed to record duplicate event", "hook", hookRef)
 		}
 		return nil
 	}
 
 	// Record the event in deduplication manager
-	if err := p.deduplicationManager.RecordEvent(hookName, match.Event); err != nil {
+	if err := p.deduplicationManager.RecordEvent(hookRef, match.Event); err != nil {
 		return fmt.Errorf("failed to record event in deduplication manager: %w", err)
 	}
 
@@ -141,7 +144,7 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 
 	// Record that the event is firing
 	if err := p.statusManager.RecordEventFiring(ctx, match.Hook, match.Event, agentRef); err != nil {
-		p.logger.Error(err, "Failed to record event firing", "hook", hookName)
+		p.logger.Error(err, "Failed to record event firing", "hook", hookRef)
 		// Continue processing even if status recording fails
 	}
 
@@ -153,22 +156,22 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 	if err != nil {
 		// Record the failure
 		if statusErr := p.statusManager.RecordAgentCallFailure(ctx, match.Hook, match.Event, agentRef, err); statusErr != nil {
-			p.logger.Error(statusErr, "Failed to record agent call failure", "hook", hookName)
+			p.logger.Error(statusErr, "Failed to record agent call failure", "hook", hookRef)
 		}
 		return fmt.Errorf("failed to call agent %s: %w", agentRef.Name, err)
 	}
 
 	// Record successful agent call
 	if err := p.statusManager.RecordAgentCallSuccess(ctx, match.Hook, match.Event, agentRef, response.RequestId); err != nil {
-		p.logger.Error(err, "Failed to record agent call success", "hook", hookName)
+		p.logger.Error(err, "Failed to record agent call success", "hook", hookRef)
 		// Continue even if status recording fails
 	}
 
 	// Mark event as notified to suppress re-sending within suppression window
-	p.deduplicationManager.MarkNotified(hookName, match.Event)
+	p.deduplicationManager.MarkNotified(hookRef, match.Event)
 
 	p.logger.Info("Successfully processed event match",
-		"hook", hookName,
+		"hook", hookRef,
 		"eventType", match.Event.Type,
 		"resourceName", match.Event.ResourceName,
 		"agentRef", agentRef,
@@ -338,20 +341,23 @@ func (p *Processor) UpdateHookStatuses(ctx context.Context, hooks []*v1alpha2.Ho
 	p.logger.Info("Updating hook statuses", "hookCount", len(hooks))
 
 	for _, hook := range hooks {
-		hookName := fmt.Sprintf("%s/%s", hook.Namespace, hook.Name)
+		hookRef := types.NamespacedName{
+			Namespace: hook.Namespace,
+			Name:      hook.Name,
+		}
 
 		// Get active events for this hook with current status
-		activeEvents := p.deduplicationManager.GetActiveEventsWithStatus(hookName)
+		activeEvents := p.deduplicationManager.GetActiveEventsWithStatus(hookRef)
 
 		// Update the hook status
 		if err := p.statusManager.UpdateHookStatus(ctx, hook, activeEvents); err != nil {
-			p.logger.Error(err, "Failed to update hook status", "hook", hookName)
+			p.logger.Error(err, "Failed to update hook status", "hook", hookRef)
 			// Continue updating other hooks even if one fails
 			continue
 		}
 
 		p.logger.V(1).Info("Updated hook status",
-			"hook", hookName,
+			"hook", hookRef,
 			"activeEventsCount", len(activeEvents))
 	}
 
@@ -363,10 +369,13 @@ func (p *Processor) CleanupExpiredEvents(ctx context.Context, hooks []*v1alpha2.
 	p.logger.V(1).Info("Cleaning up expired events", "hookCount", len(hooks))
 
 	for _, hook := range hooks {
-		hookName := fmt.Sprintf("%s/%s", hook.Namespace, hook.Name)
+		hookRef := types.NamespacedName{
+			Namespace: hook.Namespace,
+			Name:      hook.Name,
+		}
 
-		if err := p.deduplicationManager.CleanupExpiredEvents(hookName); err != nil {
-			p.logger.Error(err, "Failed to cleanup expired events", "hook", hookName)
+		if err := p.deduplicationManager.CleanupExpiredEvents(hookRef); err != nil {
+			p.logger.Error(err, "Failed to cleanup expired events", "hook", hookRef)
 			// Continue cleaning up other hooks even if one fails
 			continue
 		}

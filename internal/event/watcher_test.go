@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/kagent-dev/khook/api/v1alpha2"
 	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
@@ -135,7 +136,7 @@ func TestFilterEvent(t *testing.T) {
 
 	// For now, just test that FilterEvent returns empty matches
 	// This will be expanded when we implement the actual filtering logic
-	hooks := []interface{}{}
+	hooks := []*v1alpha2.Hook{}
 	matches := watcher.FilterEvent(event, hooks)
 
 	// Should return empty matches for now

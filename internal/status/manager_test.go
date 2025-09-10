@@ -393,7 +393,7 @@ func TestGetHookStatus(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	status, err := manager.GetHookStatus(ctx, "test-hook", "default")
+	status, err := manager.GetHookStatus(ctx, types.NamespacedName{Name: "test-hook", Namespace: "default"})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
@@ -412,11 +412,11 @@ func TestGetHookStatusNotFound(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	status, err := manager.GetHookStatus(ctx, "nonexistent-hook", "default")
+	status, err := manager.GetHookStatus(ctx, types.NamespacedName{Name: "nonexistent-hook", Namespace: "default"})
 
 	assert.Error(t, err)
 	assert.Nil(t, status)
-	assert.Contains(t, err.Error(), "failed to get hook")
+	assert.Contains(t, err.Error(), "failed to get hook default/nonexistent-hook")
 }
 
 func TestLogControllerStartup(t *testing.T) {

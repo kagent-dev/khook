@@ -13,8 +13,8 @@ import (
 type ControllerManager interface {
 	Start(ctx context.Context) error
 	Stop() error
-	AddHookWatch(hook interface{}) error
-	RemoveHookWatch(hookName string) error
+	AddHookWatch(hook *v1alpha2.Hook) error
+	RemoveHookWatch(hookRef types.NamespacedName) error
 }
 
 // Event represents a Kubernetes event with relevant metadata
@@ -31,15 +31,14 @@ type Event struct {
 
 // EventMatch represents a matched event with its corresponding hook configuration
 type EventMatch struct {
-	Hook          interface{} `json:"hook"`
-	Configuration interface{} `json:"configuration"`
-	Event         Event       `json:"event"`
+	Hook  *v1alpha2.Hook `json:"hook"`
+	Event Event          `json:"event"`
 }
 
 // EventWatcher monitors Kubernetes events and filters them against hook configurations
 type EventWatcher interface {
 	WatchEvents(ctx context.Context) (<-chan Event, error)
-	FilterEvent(event Event, hooks []interface{}) []EventMatch
+	FilterEvent(event Event, hooks []*v1alpha2.Hook) []EventMatch
 	Start(ctx context.Context) error
 	Stop() error
 }
@@ -80,12 +79,12 @@ type ActiveEvent struct {
 
 // DeduplicationManager implements event deduplication logic with timeout
 type DeduplicationManager interface {
-	ShouldProcessEvent(hookName string, event Event) bool
-	RecordEvent(hookName string, event Event) error
-	CleanupExpiredEvents(hookName string) error
-	GetActiveEvents(hookName string) []ActiveEvent
-	GetActiveEventsWithStatus(hookName string) []ActiveEvent
-	MarkNotified(hookName string, event Event)
+	ShouldProcessEvent(hookRef types.NamespacedName, event Event) bool
+	RecordEvent(hookRef types.NamespacedName, event Event) error
+	CleanupExpiredEvents(hookRef types.NamespacedName) error
+	GetActiveEvents(hookRef types.NamespacedName) []ActiveEvent
+	GetActiveEventsWithStatus(hookRef types.NamespacedName) []ActiveEvent
+	MarkNotified(hookRef types.NamespacedName, event Event)
 }
 
 // EventRecorder handles Kubernetes event recording
@@ -97,14 +96,14 @@ type EventRecorder interface {
 
 // StatusManager handles status updates and event recording for Hook resources
 type StatusManager interface {
-	UpdateHookStatus(ctx context.Context, hook interface{}, activeEvents []ActiveEvent) error
-	RecordEventFiring(ctx context.Context, hook interface{}, event Event, agentRef types.NamespacedName) error
-	RecordEventResolved(ctx context.Context, hook interface{}, eventType, resourceName string) error
-	RecordError(ctx context.Context, hook interface{}, event Event, err error, agentRef types.NamespacedName) error
-	RecordAgentCallSuccess(ctx context.Context, hook interface{}, event Event, agentRef types.NamespacedName, requestId string) error
-	RecordAgentCallFailure(ctx context.Context, hook interface{}, event Event, agentRef types.NamespacedName, err error) error
-	RecordDuplicateEvent(ctx context.Context, hook interface{}, event Event) error
-	GetHookStatus(ctx context.Context, hookName, namespace string) (*v1alpha2.HookStatus, error)
+	UpdateHookStatus(ctx context.Context, hook *v1alpha2.Hook, activeEvents []ActiveEvent) error
+	RecordEventFiring(ctx context.Context, hook *v1alpha2.Hook, event Event, agentRef types.NamespacedName) error
+	RecordEventResolved(ctx context.Context, hook *v1alpha2.Hook, eventType, resourceName string) error
+	RecordError(ctx context.Context, hook *v1alpha2.Hook, event Event, err error, agentRef types.NamespacedName) error
+	RecordAgentCallSuccess(ctx context.Context, hook *v1alpha2.Hook, event Event, agentRef types.NamespacedName, requestId string) error
+	RecordAgentCallFailure(ctx context.Context, hook *v1alpha2.Hook, event Event, agentRef types.NamespacedName, err error) error
+	RecordDuplicateEvent(ctx context.Context, hook *v1alpha2.Hook, event Event) error
+	GetHookStatus(ctx context.Context, hookRef types.NamespacedName) (*v1alpha2.HookStatus, error)
 	LogControllerStartup(ctx context.Context, version string, config map[string]interface{})
 	LogControllerShutdown(ctx context.Context, reason string)
 }
