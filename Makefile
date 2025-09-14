@@ -75,6 +75,12 @@ test: fmt vet ## Run tests.
 build: fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
+.PHONY: generate
+generate: ## Generate code and manifests (CRDs, RBAC, webhooks)
+	$(shell go env GOPATH)/bin/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(shell go env GOPATH)/bin/controller-gen crd:allowDangerousTypes=true paths="./api/..." output:crd:artifacts:config=config/crd/bases
+	cp config/crd/bases/kagent.dev_hooks.yaml helm/khook-crds/crds/kagent.dev_hooks.yaml
+
 .PHONY: run
 run: fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
@@ -137,7 +143,7 @@ helm-version:
 	helm package -d $(HELM_DIST_FOLDER) helm/khook-crds
 	helm package -d $(HELM_DIST_FOLDER) helm/khook
 
-	.PHONY: helm-publish
+.PHONY: helm-publish
 helm-publish: helm-version
 	helm push ./$(HELM_DIST_FOLDER)/khook-crds-$(VERSION).tgz $(HELM_REPO)/khook/helm
 	helm push ./$(HELM_DIST_FOLDER)/khook-$(VERSION).tgz $(HELM_REPO)/khook/helm
