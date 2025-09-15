@@ -141,7 +141,7 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 
 	c.logger.Info("Creating session for agent call",
 		"sessionName", sessionName,
-		"agentId", request.AgentRef.Name,
+		"agentId", request.AgentRef.String(),
 		"eventName", request.EventName)
 
 	sessionResp, err := c.clientSet.Session.CreateSession(ctx, sessionReq)
