@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/interfaces"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestNewManager(t *testing.T) {
@@ -43,7 +44,7 @@ func TestShouldProcessEvent_NewEvent(t *testing.T) {
 	}
 
 	// New event should be processed
-	shouldProcess := manager.ShouldProcessEvent("test-hook", event)
+	shouldProcess := manager.ShouldProcessEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	assert.True(t, shouldProcess)
 }
 
@@ -58,11 +59,11 @@ func TestShouldProcessEvent_DuplicateWithinTimeout(t *testing.T) {
 	}
 
 	// Record the event first
-	err := manager.RecordEvent("test-hook", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	require.NoError(t, err)
 
 	// Same event within timeout should not be processed
-	shouldProcess := manager.ShouldProcessEvent("test-hook", event)
+	shouldProcess := manager.ShouldProcessEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	assert.False(t, shouldProcess)
 }
 
@@ -77,16 +78,17 @@ func TestShouldProcessEvent_ExpiredEvent(t *testing.T) {
 	}
 
 	// Record the event
-	err := manager.RecordEvent("test-hook", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	require.NoError(t, err)
 
 	// Manually set the event to be older than timeout
-	hookEventMap := manager.hookEvents["test-hook"]
+	hookEventMap, exists := manager.hookEvents[types.NamespacedName{Name: "test-hook", Namespace: "default"}.String()]
+	require.True(t, exists)
 	key := manager.eventKey(event)
 	hookEventMap[key].FirstSeen = time.Now().Add(-EventTimeoutDuration - time.Minute)
 
 	// Expired event should be processed again
-	shouldProcess := manager.ShouldProcessEvent("test-hook", event)
+	shouldProcess := manager.ShouldProcessEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	assert.True(t, shouldProcess)
 }
 
@@ -100,11 +102,11 @@ func TestRecordEvent_NewEvent(t *testing.T) {
 		Timestamp:    time.Now(),
 	}
 
-	err := manager.RecordEvent("test-hook", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	require.NoError(t, err)
 
 	// Verify event was recorded
-	activeEvents := manager.GetActiveEvents("test-hook")
+	activeEvents := manager.GetActiveEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	assert.Equal(t, 1, len(activeEvents))
 	assert.Equal(t, "pod-restart", activeEvents[0].EventType)
 	assert.Equal(t, "test-pod", activeEvents[0].ResourceName)
@@ -122,19 +124,19 @@ func TestRecordEvent_UpdateExistingEvent(t *testing.T) {
 	}
 
 	// Record event first time
-	err := manager.RecordEvent("test-hook", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	require.NoError(t, err)
 
-	activeEvents := manager.GetActiveEvents("test-hook")
+	activeEvents := manager.GetActiveEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	firstSeen := activeEvents[0].FirstSeen
 
 	// Wait a bit and record same event again
 	time.Sleep(10 * time.Millisecond)
-	err = manager.RecordEvent("test-hook", event)
+	err = manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	require.NoError(t, err)
 
 	// Verify event was updated, not duplicated
-	activeEvents = manager.GetActiveEvents("test-hook")
+	activeEvents = manager.GetActiveEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	assert.Equal(t, 1, len(activeEvents))
 	assert.Equal(t, firstSeen, activeEvents[0].FirstSeen)     // FirstSeen should not change
 	assert.True(t, activeEvents[0].LastSeen.After(firstSeen)) // LastSeen should be updated
@@ -151,15 +153,15 @@ func TestRecordEvent_MultipleHooks(t *testing.T) {
 	}
 
 	// Record same event for different hooks
-	err := manager.RecordEvent("hook1", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "hook1", Namespace: "default"}, event)
 	require.NoError(t, err)
 
-	err = manager.RecordEvent("hook2", event)
+	err = manager.RecordEvent(types.NamespacedName{Name: "hook2", Namespace: "default"}, event)
 	require.NoError(t, err)
 
 	// Verify both hooks have the event
-	activeEvents1 := manager.GetActiveEvents("hook1")
-	activeEvents2 := manager.GetActiveEvents("hook2")
+	activeEvents1 := manager.GetActiveEvents(types.NamespacedName{Name: "hook1", Namespace: "default"})
+	activeEvents2 := manager.GetActiveEvents(types.NamespacedName{Name: "hook2", Namespace: "default"})
 
 	assert.Equal(t, 1, len(activeEvents1))
 	assert.Equal(t, 1, len(activeEvents2))
@@ -185,23 +187,24 @@ func TestCleanupExpiredEvents(t *testing.T) {
 	}
 
 	// Record both events
-	err := manager.RecordEvent("test-hook", recentEvent)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, recentEvent)
 	require.NoError(t, err)
 
-	err = manager.RecordEvent("test-hook", oldEvent)
+	err = manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, oldEvent)
 	require.NoError(t, err)
 
 	// Manually age the old event
-	hookEventMap := manager.hookEvents["test-hook"]
+	hookEventMap, exists := manager.hookEvents[types.NamespacedName{Name: "test-hook", Namespace: "default"}.String()]
+	require.True(t, exists)
 	oldKey := manager.eventKey(oldEvent)
 	hookEventMap[oldKey].FirstSeen = time.Now().Add(-EventTimeoutDuration - time.Minute)
 
 	// Cleanup expired events
-	err = manager.CleanupExpiredEvents("test-hook")
+	err = manager.CleanupExpiredEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	require.NoError(t, err)
 
 	// Verify only recent event remains
-	activeEvents := manager.GetActiveEvents("test-hook")
+	activeEvents := manager.GetActiveEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	assert.Equal(t, 1, len(activeEvents))
 	assert.Equal(t, "recent-pod", activeEvents[0].ResourceName)
 }
@@ -210,7 +213,7 @@ func TestCleanupExpiredEvents_EmptyHook(t *testing.T) {
 	manager := NewManager()
 
 	// Cleanup non-existent hook should not error
-	err := manager.CleanupExpiredEvents("non-existent-hook")
+	err := manager.CleanupExpiredEvents(types.NamespacedName{Name: "non-existent-hook", Namespace: "default"})
 	assert.NoError(t, err)
 }
 
@@ -225,30 +228,31 @@ func TestCleanupExpiredEvents_AllEventsExpired(t *testing.T) {
 	}
 
 	// Record event
-	err := manager.RecordEvent("test-hook", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	require.NoError(t, err)
 
 	// Age the event
-	hookEventMap := manager.hookEvents["test-hook"]
+	hookEventMap, exists := manager.hookEvents[types.NamespacedName{Name: "test-hook", Namespace: "default"}.String()]
+	require.True(t, exists)
 	key := manager.eventKey(event)
 	hookEventMap[key].FirstSeen = time.Now().Add(-EventTimeoutDuration - time.Minute)
 
 	// Cleanup expired events
-	err = manager.CleanupExpiredEvents("test-hook")
+	err = manager.CleanupExpiredEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	require.NoError(t, err)
 
 	// Verify hook map is cleaned up
-	_, exists := manager.hookEvents["test-hook"]
+	_, exists = manager.hookEvents[types.NamespacedName{Name: "test-hook", Namespace: "default"}.String()]
 	assert.False(t, exists)
 
-	activeEvents := manager.GetActiveEvents("test-hook")
+	activeEvents := manager.GetActiveEvents(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	assert.Equal(t, 0, len(activeEvents))
 }
 
 func TestGetActiveEvents_EmptyHook(t *testing.T) {
 	manager := NewManager()
 
-	activeEvents := manager.GetActiveEvents("non-existent-hook")
+	activeEvents := manager.GetActiveEvents(types.NamespacedName{Name: "non-existent-hook", Namespace: "default"})
 	assert.Equal(t, 0, len(activeEvents))
 	assert.NotNil(t, activeEvents) // Should return empty slice, not nil
 }
@@ -272,27 +276,29 @@ func TestGetActiveEvents_WithExpiredEvents(t *testing.T) {
 	}
 
 	// Record both events
-	err := manager.RecordEvent("test-hook", recentEvent)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, recentEvent)
 	require.NoError(t, err)
 
-	err = manager.RecordEvent("test-hook", oldEvent)
+	err = manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, oldEvent)
 	require.NoError(t, err)
 
 	// Age the old event
-	hookEventMap := manager.hookEvents["test-hook"]
+	hookEventMap, exists := manager.hookEvents[types.NamespacedName{Name: "test-hook", Namespace: "default"}.String()]
+	require.True(t, exists)
 	oldKey := manager.eventKey(oldEvent)
 	hookEventMap[oldKey].FirstSeen = time.Now().Add(-EventTimeoutDuration - time.Minute)
 
 	// Get active events with status (should mark old event as resolved)
-	activeEvents := manager.GetActiveEventsWithStatus("test-hook")
+	activeEvents := manager.GetActiveEventsWithStatus(types.NamespacedName{Name: "test-hook", Namespace: "default"})
 	assert.Equal(t, 2, len(activeEvents))
 
 	// Find the events and check their status
 	var recentEventStatus, oldEventStatus string
 	for _, event := range activeEvents {
-		if event.ResourceName == "recent-pod" {
+		switch event.ResourceName {
+		case "recent-pod":
 			recentEventStatus = event.Status
-		} else if event.ResourceName == "old-pod" {
+		case "old-pod":
 			oldEventStatus = event.Status
 		}
 	}
@@ -319,16 +325,16 @@ func TestGetAllHookNames(t *testing.T) {
 	}
 
 	// Record events for different hooks
-	err := manager.RecordEvent("hook1", event1)
+	err := manager.RecordEvent(types.NamespacedName{Name: "hook1", Namespace: "default"}, event1)
 	require.NoError(t, err)
 
-	err = manager.RecordEvent("hook2", event2)
+	err = manager.RecordEvent(types.NamespacedName{Name: "hook2", Namespace: "default"}, event2)
 	require.NoError(t, err)
 
 	hookNames := manager.GetAllHookNames()
 	assert.Equal(t, 2, len(hookNames))
-	assert.Contains(t, hookNames, "hook1")
-	assert.Contains(t, hookNames, "hook2")
+	assert.Contains(t, hookNames, "default/hook1")
+	assert.Contains(t, hookNames, "default/hook2")
 }
 
 func TestGetEventCount(t *testing.T) {
@@ -351,15 +357,15 @@ func TestGetEventCount(t *testing.T) {
 	}
 
 	// Record events
-	err := manager.RecordEvent("hook1", event1)
+	err := manager.RecordEvent(types.NamespacedName{Name: "hook1", Namespace: "default"}, event1)
 	require.NoError(t, err)
 	assert.Equal(t, 1, manager.GetEventCount())
 
-	err = manager.RecordEvent("hook1", event2)
+	err = manager.RecordEvent(types.NamespacedName{Name: "hook1", Namespace: "default"}, event2)
 	require.NoError(t, err)
 	assert.Equal(t, 2, manager.GetEventCount())
 
-	err = manager.RecordEvent("hook2", event1)
+	err = manager.RecordEvent(types.NamespacedName{Name: "hook2", Namespace: "default"}, event1)
 	require.NoError(t, err)
 	assert.Equal(t, 3, manager.GetEventCount())
 }
@@ -385,19 +391,19 @@ func TestConcurrentAccess(t *testing.T) {
 			hookName := fmt.Sprintf("hook-%d", id)
 
 			// Record event
-			err := manager.RecordEvent(hookName, event)
+			err := manager.RecordEvent(types.NamespacedName{Name: hookName, Namespace: "default"}, event)
 			assert.NoError(t, err)
 
 			// Check if should process
-			shouldProcess := manager.ShouldProcessEvent(hookName, event)
+			shouldProcess := manager.ShouldProcessEvent(types.NamespacedName{Name: hookName, Namespace: "default"}, event)
 			assert.False(t, shouldProcess) // Should be false since we just recorded it
 
 			// Get active events
-			activeEvents := manager.GetActiveEvents(hookName)
+			activeEvents := manager.GetActiveEvents(types.NamespacedName{Name: hookName, Namespace: "default"})
 			assert.Equal(t, 1, len(activeEvents))
 
 			// Cleanup
-			err = manager.CleanupExpiredEvents(hookName)
+			err = manager.CleanupExpiredEvents(types.NamespacedName{Name: hookName, Namespace: "default"})
 			assert.NoError(t, err)
 		}(i)
 	}
@@ -424,7 +430,7 @@ func BenchmarkRecordEvent(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := manager.RecordEvent("test-hook", event)
+		err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -442,13 +448,13 @@ func BenchmarkShouldProcessEvent(b *testing.B) {
 	}
 
 	// Record event first
-	err := manager.RecordEvent("test-hook", event)
+	err := manager.RecordEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		manager.ShouldProcessEvent("test-hook", event)
+		manager.ShouldProcessEvent(types.NamespacedName{Name: "test-hook", Namespace: "default"}, event)
 	}
 }

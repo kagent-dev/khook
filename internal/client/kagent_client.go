@@ -3,14 +3,13 @@ package client
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
-	"github.com/antweiss/khook/internal/interfaces"
 	"github.com/go-logr/logr"
 	"github.com/kagent-dev/kagent/go/pkg/client"
 	"github.com/kagent-dev/kagent/go/pkg/client/api"
+	"github.com/kagent-dev/khook/internal/interfaces"
 	a2aclient "trpc.group/trpc-go/trpc-a2a-go/client"
 	"trpc.group/trpc-go/trpc-a2a-go/protocol"
 )
@@ -134,15 +133,15 @@ func (c *Client) Authenticate() error {
 func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest) (*interfaces.AgentResponse, error) {
 	// Create a session for this agent call
 	sessionName := fmt.Sprintf("hook-%s-%d", request.EventName, time.Now().Unix())
-
+	agentRefString := request.AgentRef.String()
 	sessionReq := &api.SessionRequest{
-		AgentRef: &request.AgentId,
+		AgentRef: &agentRefString,
 		Name:     &sessionName,
 	}
 
 	c.logger.Info("Creating session for agent call",
 		"sessionName", sessionName,
-		"agentId", request.AgentId,
+		"agentId", request.AgentRef.String(),
 		"eventName", request.EventName)
 
 	sessionResp, err := c.clientSet.Session.CreateSession(ctx, sessionReq)
@@ -178,7 +177,7 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 	}
 
 	// Use A2A SendMessage (POST). Provide a clean base URL with trailing slash; no query params.
-	a2aURL := fmt.Sprintf("%s/api/a2a/%s/", c.config.BaseURL, request.AgentId)
+	a2aURL := fmt.Sprintf("%s/api/a2a/%s/", c.config.BaseURL, request.AgentRef.String())
 	a2a, err := a2aclient.NewA2AClient(a2aURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create A2A client: %w", err)
@@ -197,27 +196,15 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 	})
 	if err != nil {
 		c.logger.Error(err, "Failed to send message to agent",
-			"agentId", request.AgentId,
+			"agentRef", request.AgentRef.String(),
 			"sessionId", sessionResp.Data.ID)
 		return nil, fmt.Errorf("failed to send A2A message: %w", err)
 	}
 
-	// Best-effort check whether a Task was returned (per A2A Life of a Task)
-	isTask := false
-	if res != nil {
-		rv := reflect.ValueOf(res)
-		if rv.Kind() == reflect.Ptr {
-			rv = rv.Elem()
-		}
-		if rv.IsValid() {
-			if f := rv.FieldByName("Task"); f.IsValid() && !f.IsZero() {
-				isTask = true
-			}
-		}
-	}
+	_, isTask := res.Result.(*protocol.Task)
 
 	c.logger.Info("Agent accepted message via A2A",
-		"agentId", request.AgentId,
+		"agentRef", request.AgentRef.String(),
 		"sessionId", sessionID,
 		"taskReturned", isTask)
 
@@ -228,7 +215,7 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 	}
 
 	c.logger.Info("Agent call completed successfully",
-		"agentId", request.AgentId,
+		"agentRef", request.AgentRef.String(),
 		"sessionId", response.RequestId)
 
 	return response, nil

@@ -33,8 +33,10 @@ func TestHookValidation(t *testing.T) {
 			EventConfigurations: []EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "agent-123",
-					Prompt:    "Pod has restarted",
+					AgentRef: ObjectReference{
+						Name: "agent-123",
+					},
+					Prompt: "Pod has restarted",
 				},
 			},
 		},
@@ -69,8 +71,10 @@ func TestHookDeepCopy(t *testing.T) {
 			EventConfigurations: []EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "agent-123",
-					Prompt:    "Pod has restarted",
+					AgentRef: ObjectReference{
+						Name: "agent-123",
+					},
+					Prompt: "Pod has restarted",
 				},
 			},
 		},

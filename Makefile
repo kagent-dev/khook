@@ -1,9 +1,33 @@
 # Image URL to use all building/pushing image targets
-IMG ?= kagent/hook-controller:latest
-DOCKER_REGISTRY ?= otomato
+
+# Image configuration
+DOCKER_REGISTRY ?= localhost:5001
+BASE_IMAGE_REGISTRY ?= ghcr.io
+DOCKER_REPO ?= kagent-dev/khook
+HELM_REPO ?= oci://ghcr.io/kagent-dev
+HELM_DIST_FOLDER ?= dist
+
+BUILD_DATE := $(shell date -u '+%Y-%m-%d')
+GIT_COMMIT := $(shell git rev-parse --short HEAD || echo "unknown")
+VERSION ?= $(shell git describe --tags --always 2>/dev/null | grep v || echo "v0.0.0-$(GIT_COMMIT)")
+
+# Local architecture detection to build for the current platform
+LOCALARCH ?= $(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+
+
+# Docker buildx configuration
+BUILDKIT_VERSION = v0.23.0
+BUILDX_NO_DEFAULT_ATTESTATIONS=1
+BUILDX_BUILDER_NAME ?= kagent-builder-$(BUILDKIT_VERSION)
+
+DOCKER_BUILDER ?= docker buildx
+DOCKER_BUILD_ARGS ?= --push --platform linux/$(LOCALARCH)
+KIND_CLUSTER_NAME ?= kagent
+
 DOCKER_IMAGE ?= khook
-GIT_HASH ?= $(shell git rev-parse --short HEAD)
-DOCKER_TAG ?= $(GIT_HASH)
+
+IMG ?= $(DOCKER_REGISTRY)/$(DOCKER_REPO)/$(DOCKER_IMAGE):$(VERSION)
+
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -51,33 +75,30 @@ test: fmt vet ## Run tests.
 build: fmt vet ## Build manager binary.
 	go build -o bin/manager cmd/main.go
 
+.PHONY: generate
+generate: ## Generate code and manifests (CRDs, RBAC, webhooks)
+	$(shell go env GOPATH)/bin/controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(shell go env GOPATH)/bin/controller-gen crd:allowDangerousTypes=true paths="./api/..." output:crd:artifacts:config=config/crd/bases
+	cp config/crd/bases/kagent.dev_hooks.yaml helm/khook-crds/crds/kagent.dev_hooks.yaml
+
 .PHONY: run
 run: fmt vet ## Run a controller from your host.
 	go run ./cmd/main.go
 
 .PHONY: docker-build
-docker-build: ## Build docker image with the manager.
-	docker build -t ${IMG} .
-
-.PHONY: docker-push
-docker-push: ## Push docker image with the manager.
-	docker push ${IMG}
-
-.PHONY: docker-build-hash
-docker-build-hash: ## Build docker image with git hash tag.
-	docker build -t $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) .
-	docker tag $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
-
-.PHONY: docker-push-hash
-docker-push-hash: docker-build-hash ## Build and push docker image with git hash tag to Docker Hub.
-	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):$(DOCKER_TAG)
-	docker push $(DOCKER_REGISTRY)/$(DOCKER_IMAGE):latest
-
-.PHONY: docker-login
-docker-login: ## Login to Docker Hub (requires DOCKER_USERNAME and DOCKER_PASSWORD env vars).
-	@echo "$$DOCKER_PASSWORD" | docker login -u "$$DOCKER_USERNAME" --password-stdin
+docker-build:
+	$(DOCKER_BUILDER) build --build-arg VERSION=$(VERSION) $(DOCKER_BUILD_ARGS) -t $(IMG) .
 
 ##@ Deployment
+
+.PHONY: create-kind-cluster
+create-kind-cluster:
+	bash ./scripts/kind/setup-kind.sh
+	bash ./scripts/kind/setup-metallb.sh
+
+.PHONY: delete-kind-cluster
+delete-kind-cluster:
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 .PHONY: install
 install: ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -109,25 +130,43 @@ kustomize-build: ## Build kustomized manifests.
 
 ##@ Helm
 
+.PHONY: helm-cleanup
+helm-cleanup:
+	rm -f ./$(HELM_DIST_FOLDER)/*.tgz
+
+.PHONY: helm-version
+helm-version: 
+	VERSION=$(VERSION) envsubst < helm/khook-crds/Chart-template.yaml > helm/khook-crds/Chart.yaml
+	VERSION=$(VERSION) envsubst < helm/khook/Chart-template.yaml > helm/khook/Chart.yaml
+	helm dependency update helm/khook
+	helm dependency update helm/khook-crds
+	helm package -d $(HELM_DIST_FOLDER) helm/khook-crds
+	helm package -d $(HELM_DIST_FOLDER) helm/khook
+
+.PHONY: helm-publish
+helm-publish: helm-version
+	helm push ./$(HELM_DIST_FOLDER)/khook-crds-$(VERSION).tgz $(HELM_REPO)/khook/helm
+	helm push ./$(HELM_DIST_FOLDER)/khook-$(VERSION).tgz $(HELM_REPO)/khook/helm
+
 .PHONY: helm-lint
 helm-lint: ## Lint Helm chart.
-	helm lint charts/khook-controller
+	helm lint helm/khook
 
 .PHONY: helm-template
-helm-template: ## Generate Helm templates.
-	helm template khook charts/khook-controller
+helm-template: helm-version## Generate Helm templates.
+	helm template khook helm/khook
 
 .PHONY: helm-install
-helm-install: ## Install Helm chart.
-	helm install khook charts/khook-controller \
+helm-install: helm-version## Install Helm chart.
+	helm install khook helm/khook \
 		--namespace kagent \
 		--create-namespace
 
 .PHONY: helm-upgrade
-helm-upgrade: ## Upgrade Helm chart.
-	helm upgrade khook charts/khook-controller \
+helm-upgrade: helm-version## Upgrade Helm chart.
+	helm upgrade khook helm/khook \
 		--namespace kagent
 
 .PHONY: helm-uninstall
-helm-uninstall: ## Uninstall Helm chart.
+helm-uninstall: helm-version## Uninstall Helm chart.
 	helm uninstall khook --namespace kagent

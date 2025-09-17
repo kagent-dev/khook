@@ -160,7 +160,7 @@ kubectl logs -n kagent deployment/khook | grep "leader"
 3. **Clock skew issues:**
    ```bash
    # Check system time on controller
-   kubectl exec -n kagent deployment/khook-controller -- date
+   kubectl exec -n kagent deployment/khook -- date
    
    # Compare with cluster time
    kubectl get nodes -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].lastTransitionTime}'
@@ -177,20 +177,20 @@ kubectl logs -n kagent deployment/khook | grep "leader"
 
 ```bash
 # Monitor memory usage
-kubectl top pod -n kagent -l app=khook-controller
+kubectl top pod -n kagent -l app=khook
 
 # Check active events across all hooks
 kubectl get hooks -A -o jsonpath='{range .items[*]}{.metadata.name}: {.status.activeEvents}{"\n"}{end}'
 
 # Check for memory leaks in logs
-kubectl logs -n kagent deployment/khook-controller | grep -i "memory\|leak\|gc"
+kubectl logs -n kagent deployment/khook | grep -i "memory\|leak\|gc"
 ```
 
 **Solutions:**
 
 1. **Increase resource limits:**
    ```bash
-   kubectl patch deployment khook-controller -n kagent -p '{
+   kubectl patch deployment khook -n kagent -p '{
      "spec": {
        "template": {
          "spec": {
@@ -210,7 +210,7 @@ kubectl logs -n kagent deployment/khook-controller | grep -i "memory\|leak\|gc"
 2. **Clean up stale events:**
    ```bash
    # Restart controller to clean up memory
-   kubectl rollout restart deployment/khook-controller -n kagent
+   kubectl rollout restart deployment/khook -n kagent
    ```
 
 ### 5. Permission Denied Errors
@@ -224,12 +224,12 @@ kubectl logs -n kagent deployment/khook-controller | grep -i "memory\|leak\|gc"
 
 ```bash
 # Check current permissions
-kubectl auth can-i get events --as=system:serviceaccount:kagent:khook-controller
-kubectl auth can-i update hooks --as=system:serviceaccount:kagent:khook-controller
+kubectl auth can-i get events --as=system:serviceaccount:kagent:khook
+kubectl auth can-i update hooks --as=system:serviceaccount:kagent:khook
 
 # Verify ClusterRole and ClusterRoleBinding
-kubectl get clusterrole khook-controller -o yaml
-kubectl get clusterrolebinding khook-controller -o yaml
+kubectl get clusterrole khook -o yaml
+kubectl get clusterrolebinding khook -o yaml
 ```
 
 **Solutions:**
@@ -241,7 +241,7 @@ kubectl get clusterrolebinding khook-controller -o yaml
 
 2. **Verify service account:**
    ```bash
-   kubectl get serviceaccount khook-controller -n kagent
+   kubectl get serviceaccount khook -n kagent
    ```
 
 ## Debug Mode
@@ -253,7 +253,7 @@ Enable debug logging for detailed troubleshooting:
 kubectl set env deployment/kagent-hook-controller -n kagent LOG_LEVEL=debug
 
 # Watch debug logs
-kubectl logs -n kagent deployment/khook-controller -f | grep DEBUG
+kubectl logs -n kagent deployment/khook -f | grep DEBUG
 ```
 
 ## Performance Issues
@@ -268,7 +268,7 @@ kubectl logs -n kagent deployment/khook-controller -f | grep DEBUG
 
 1. **Increase controller resources:**
    ```bash
-   kubectl patch deployment khook-controller -n kagent -p '{
+   kubectl patch deployment khook -n kagent -p '{
      "spec": {
        "template": {
          "spec": {
@@ -316,7 +316,7 @@ Collect comprehensive logs for support:
 
 ```bash
 # Controller logs
-kubectl logs -n kagent deployment/khook-controller --previous > controller-logs.txt
+kubectl logs -n kagent deployment/khook --previous > controller-logs.txt
 
 # Hook status
 kubectl get hooks -A -o yaml > hooks-status.yaml

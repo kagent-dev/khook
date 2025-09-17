@@ -14,10 +14,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	kagentv1alpha2 "github.com/antweiss/khook/api/v1alpha2"
-	kclient "github.com/antweiss/khook/internal/client"
-	"github.com/antweiss/khook/internal/config"
-	"github.com/antweiss/khook/internal/workflow"
+	kagentv1alpha2 "github.com/kagent-dev/khook/api/v1alpha2"
+	kclient "github.com/kagent-dev/khook/internal/client"
+	"github.com/kagent-dev/khook/internal/config"
+	"github.com/kagent-dev/khook/internal/workflow"
 )
 
 var (

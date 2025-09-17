@@ -14,9 +14,9 @@ This Helm chart deploys the Kagent Hook Controller, a Kubernetes controller that
 
 ```bash
 # Clone the repository and install from local chart
-git clone https://github.com/antweiss/khook.git
+git clone https://github.com/kagent-dev/khook.git
 cd khook
-helm install khook-controller ./charts/khook-controller \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace \
   # no API token required
@@ -25,7 +25,7 @@ helm install khook-controller ./charts/khook-controller \
 ### Install with Custom Values
 
 ```bash
-helm install khook-controller ./charts/khook-controller \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace \
   --values custom-values.yaml
@@ -65,7 +65,7 @@ The following table lists the configurable parameters and their default values:
 ### Basic Installation
 
 ```bash
-helm install khook-controller ./charts/khook-controller
+helm install khook ./helm/khook
 ```
 
 ### Production Installation with Monitoring
@@ -109,12 +109,12 @@ affinity:
           - key: app.kubernetes.io/name
             operator: In
             values:
-            - khook-controller
+            - khook
         topologyKey: kubernetes.io/hostname
 ```
 
 ```bash
-helm install khook-controller ./charts/khook-controller \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace \
   --values production-values.yaml
@@ -169,8 +169,8 @@ The controller exposes metrics on port 8080 at `/metrics` endpoint. Key metrics 
 ### Check Controller Status
 
 ```bash
-kubectl get pods -n kagent -l app.kubernetes.io/name=khook-controller
-kubectl logs -n kagent -l app.kubernetes.io/name=khook-controller
+kubectl get pods -n kagent -l app.kubernetes.io/name=khook
+kubectl logs -n kagent -l app.kubernetes.io/name=khook
 ```
 
 ### Verify Hook Resources
@@ -189,7 +189,7 @@ kubectl get events -n kagent --field-selector involvedObject.kind=Hook
 ## Uninstallation
 
 ```bash
-helm uninstall khook-controller -n kagent
+helm uninstall khook -n kagent
 kubectl delete namespace kagent
 ```
 

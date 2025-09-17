@@ -8,10 +8,10 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	kagentv1alpha2 "github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/event"
-	"github.com/antweiss/khook/internal/interfaces"
-	"github.com/antweiss/khook/internal/pipeline"
+	kagentv1alpha2 "github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/event"
+	"github.com/kagent-dev/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/pipeline"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -131,7 +131,7 @@ func (wm *WorkflowManager) CalculateSignature(hooks []*kagentv1alpha2.Hook) stri
 	for _, h := range hooks {
 		cfgs := make([]string, 0, len(h.Spec.EventConfigurations))
 		for _, ec := range h.Spec.EventConfigurations {
-			cfgs = append(cfgs, ec.EventType+"|"+ec.AgentId+"|"+ec.Prompt)
+			cfgs = append(cfgs, ec.EventType+"|"+ec.AgentRef.Name+"|"+ec.Prompt)
 		}
 		parts = append(parts, h.Namespace+"/"+h.Name+"@"+strings.Join(cfgs, ";"))
 	}

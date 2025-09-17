@@ -14,7 +14,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 // Watcher implements the EventWatcher interface
@@ -184,7 +185,7 @@ func (w *Watcher) WatchEvents(ctx context.Context) (<-chan interfaces.Event, err
 }
 
 // FilterEvent matches an event against hook configurations and returns matches
-func (w *Watcher) FilterEvent(event interfaces.Event, hooks []interface{}) []interfaces.EventMatch {
+func (w *Watcher) FilterEvent(event interfaces.Event, hooks []*v1alpha2.Hook) []interfaces.EventMatch {
 	var matches []interfaces.EventMatch
 
 	// This will be implemented when we have the actual hook processing logic

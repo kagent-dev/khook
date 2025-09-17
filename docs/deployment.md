@@ -18,7 +18,7 @@ This method uses Kubernetes native Kustomize for deployment.
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/antweiss/khook.git
+git clone https://github.com/kagent-dev/khook.git
 cd khook
 ```
 
@@ -29,11 +29,11 @@ cd khook
 kubectl create namespace kagent --dry-run=client -o yaml | kubectl apply -f -
 
 # Install CRDs first
-helm install khook-crds ./charts/kagent-hook-crds \
+helm install khook-crds ./helm/khook-crds \
   --namespace kagent \
 
 # Install controller
-helm install khook ./charts/khook-controller \
+helm install khook ./helm/khook \
   --namespace kagent \
   --create-namespace
 ```
@@ -223,7 +223,7 @@ make deploy
 git pull origin main
 
 # Upgrade release
-helm upgrade khook ./charts/khook-controller \
+helm upgrade khook ./helm/khook \
   --namespace kagent
 ```
 

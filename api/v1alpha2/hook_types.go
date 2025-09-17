@@ -29,15 +29,27 @@ type EventConfiguration struct {
 	// +kubebuilder:validation:Required
 	EventType string `json:"eventType"`
 
-	// AgentId specifies the Kagent agent to call when this event occurs
+	// AgentRef specifies the Kagent agent to call when this event occurs
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	AgentId string `json:"agentId"`
+	AgentRef ObjectReference `json:"agentRef"`
 
 	// Prompt specifies the prompt template to send to the agent
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Prompt string `json:"prompt"`
+}
+
+type ObjectReference struct {
+	// Name of the referent.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Namespace of the referent.
+	// If unspecified, the namespace of the Hook will be used.
+	// +kubebuilder:validation:Optional
+	Namespace *string `json:"namespace,omitempty"`
 }
 
 // HookStatus defines the observed state of Hook
@@ -51,7 +63,7 @@ type HookStatus struct {
 
 // Validate validates the Hook resource
 func (h *Hook) Validate() error {
-	if h.Spec.EventConfigurations == nil || len(h.Spec.EventConfigurations) == 0 {
+	if len(h.Spec.EventConfigurations) == 0 {
 		return fmt.Errorf("at least one event configuration is required")
 	}
 
@@ -82,17 +94,17 @@ func (h *Hook) validateEventConfiguration(config EventConfiguration, index int) 
 		return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed", index, config.EventType)
 	}
 
-	// Validate AgentId
-	if strings.TrimSpace(config.AgentId) == "" {
-		return fmt.Errorf("event configuration %d: agentId cannot be empty", index)
+	// Validate AgentRef
+	if strings.TrimSpace(config.AgentRef.Name) == "" {
+		return fmt.Errorf("event configuration %d: agentRef.name cannot be empty", index)
 	}
 
-	if len(config.AgentId) > 100 {
-		return fmt.Errorf("event configuration %d: agentId too long: %d characters (max 100)", index, len(config.AgentId))
+	if len(config.AgentRef.Name) > 100 {
+		return fmt.Errorf("event configuration %d: agentId too long: %d characters (max 100)", index, len(config.AgentRef.Name))
 	}
 
 	// Validate agent ID format (alphanumeric, hyphens, underscores only)
-	for _, r := range config.AgentId {
+	for _, r := range config.AgentRef.Name {
 		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
 			return fmt.Errorf("event configuration %d: agentId contains invalid character '%c', only alphanumeric, hyphens, and underscores allowed", index, r)
 		}
@@ -382,7 +394,7 @@ func validateHook(hook *Hook) (admission.Warnings, error) {
 		}
 
 		// Validate agentId is not empty
-		if strings.TrimSpace(config.AgentId) == "" {
+		if strings.TrimSpace(config.AgentRef.Name) == "" {
 			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].agentId: cannot be empty", i))
 		}
 

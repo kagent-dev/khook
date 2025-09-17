@@ -9,14 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/deduplication"
-	"github.com/antweiss/khook/internal/event"
-	"github.com/antweiss/khook/internal/interfaces"
-	"github.com/antweiss/khook/internal/status"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/deduplication"
+	"github.com/kagent-dev/khook/internal/event"
+	"github.com/kagent-dev/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/status"
 )
 
 // MockKagentClientForIntegration provides a simple mock for integration testing
@@ -35,7 +36,7 @@ func NewMockKagentClientForIntegration() *MockKagentClientForIntegration {
 func (m *MockKagentClientForIntegration) CallAgent(ctx context.Context, request interfaces.AgentRequest) (*interfaces.AgentResponse, error) {
 	m.calls = append(m.calls, request)
 
-	if response, exists := m.responses[request.AgentId]; exists {
+	if response, exists := m.responses[request.AgentRef.String()]; exists {
 		if response == nil {
 			return nil, errors.New("mock agent call failed")
 		}
@@ -46,7 +47,7 @@ func (m *MockKagentClientForIntegration) CallAgent(ctx context.Context, request 
 	return &interfaces.AgentResponse{
 		Success:   true,
 		Message:   "Mock response",
-		RequestId: "mock-request-" + request.AgentId,
+		RequestId: "mock-request-" + request.AgentRef.String(),
 	}, nil
 }
 
@@ -54,8 +55,8 @@ func (m *MockKagentClientForIntegration) Authenticate() error {
 	return nil
 }
 
-func (m *MockKagentClientForIntegration) SetResponse(agentId string, response *interfaces.AgentResponse) {
-	m.responses[agentId] = response
+func (m *MockKagentClientForIntegration) SetResponse(agentRef types.NamespacedName, response *interfaces.AgentResponse) {
+	m.responses[agentRef.String()] = response
 }
 
 func (m *MockKagentClientForIntegration) GetCalls() []interfaces.AgentRequest {
@@ -91,8 +92,10 @@ func TestEventProcessingIntegration(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "restart-agent",
-					Prompt:    "Pod {{.ResourceName}} restarted in {{.Namespace}}",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "restart-agent",
+					},
+					Prompt: "Pod {{.ResourceName}} restarted in {{.Namespace}}",
 				},
 			},
 		},
@@ -107,13 +110,17 @@ func TestEventProcessingIntegration(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "multi-restart-agent",
-					Prompt:    "Multi-hook: Pod {{.ResourceName}} restarted",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "multi-restart-agent",
+					},
+					Prompt: "Multi-hook: Pod {{.ResourceName}} restarted",
 				},
 				{
 					EventType: "oom-kill",
-					AgentId:   "oom-agent",
-					Prompt:    "OOM kill detected for {{.ResourceName}}",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "oom-agent",
+					},
+					Prompt: "OOM kill detected for {{.ResourceName}}",
 				},
 			},
 		},
@@ -148,25 +155,25 @@ func TestEventProcessingIntegration(t *testing.T) {
 
 		// Verify first call (restart-agent)
 		call1 := calls[0]
-		assert.Equal(t, "restart-agent", call1.AgentId)
+		assert.Equal(t, "restart-agent", call1.AgentRef.Name)
 		assert.Equal(t, "pod-restart", call1.EventName)
 		assert.Equal(t, "test-pod-1", call1.ResourceName)
 		assert.Contains(t, call1.Prompt, "Pod test-pod-1 restarted in default")
 
 		// Verify second call (multi-restart-agent)
 		call2 := calls[1]
-		assert.Equal(t, "multi-restart-agent", call2.AgentId)
+		assert.Equal(t, "multi-restart-agent", call2.AgentRef.Name)
 		assert.Equal(t, "pod-restart", call2.EventName)
 		assert.Equal(t, "test-pod-1", call2.ResourceName)
 		assert.Contains(t, call2.Prompt, "Multi-hook: Pod test-pod-1 restarted")
 
 		// Verify deduplication state
-		activeEvents1 := deduplicationManager.GetActiveEvents("default/pod-restart-hook")
+		activeEvents1 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "pod-restart-hook", Namespace: "default"})
 		assert.Len(t, activeEvents1, 1)
 		assert.Equal(t, "pod-restart", activeEvents1[0].EventType)
 		assert.Equal(t, "test-pod-1", activeEvents1[0].ResourceName)
 
-		activeEvents2 := deduplicationManager.GetActiveEvents("default/multi-event-hook")
+		activeEvents2 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "multi-event-hook", Namespace: "default"})
 		assert.Len(t, activeEvents2, 1)
 		assert.Equal(t, "pod-restart", activeEvents2[0].EventType)
 		assert.Equal(t, "test-pod-1", activeEvents2[0].ResourceName)
@@ -220,7 +227,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 		assert.Len(t, calls, 1, "Should call only the OOM agent")
 
 		call := calls[0]
-		assert.Equal(t, "oom-agent", call.AgentId)
+		assert.Equal(t, "oom-agent", call.AgentRef.Name)
 		assert.Equal(t, "oom-kill", call.EventName)
 		assert.Equal(t, "test-pod-2", call.ResourceName)
 		assert.Contains(t, call.Prompt, "OOM kill detected for test-pod-2")
@@ -251,14 +258,14 @@ func TestEventProcessingIntegration(t *testing.T) {
 	// Test 5: Verify active events state
 	t.Run("VerifyActiveEventsState", func(t *testing.T) {
 		// Check active events for pod-restart-hook
-		activeEvents1 := deduplicationManager.GetActiveEvents("default/pod-restart-hook")
+		activeEvents1 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "pod-restart-hook", Namespace: "default"})
 		assert.Len(t, activeEvents1, 1)
 		assert.Equal(t, "pod-restart", activeEvents1[0].EventType)
 		assert.Equal(t, "test-pod-1", activeEvents1[0].ResourceName)
 		assert.Equal(t, "firing", activeEvents1[0].Status)
 
 		// Check active events for multi-event-hook
-		activeEvents2 := deduplicationManager.GetActiveEvents("default/multi-event-hook")
+		activeEvents2 := deduplicationManager.GetActiveEvents(types.NamespacedName{Name: "multi-event-hook", Namespace: "default"})
 		assert.Len(t, activeEvents2, 2) // pod-restart and oom-kill
 
 		eventTypes := make(map[string]bool)
@@ -293,8 +300,10 @@ func TestEventProcessingWithErrors(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "failing-agent",
-					Prompt:    "This will fail",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "failing-agent",
+					},
+					Prompt: "This will fail",
 				},
 			},
 		},
@@ -309,8 +318,10 @@ func TestEventProcessingWithErrors(t *testing.T) {
 			EventConfigurations: []v1alpha2.EventConfiguration{
 				{
 					EventType: "pod-restart",
-					AgentId:   "working-agent",
-					Prompt:    "This will work",
+					AgentRef: v1alpha2.ObjectReference{
+						Name: "working-agent",
+					},
+					Prompt: "This will work",
 				},
 			},
 		},
@@ -320,8 +331,8 @@ func TestEventProcessingWithErrors(t *testing.T) {
 	ctx := context.Background()
 
 	// Set up one agent to fail and one to succeed
-	mockKagentClient.SetResponse("failing-agent", nil) // This will cause an error
-	mockKagentClient.SetResponse("working-agent", &interfaces.AgentResponse{
+	mockKagentClient.SetResponse(types.NamespacedName{Name: "failing-agent", Namespace: "default"}, nil) // This will cause an error
+	mockKagentClient.SetResponse(types.NamespacedName{Name: "working-agent", Namespace: "default"}, &interfaces.AgentResponse{
 		Success:   true,
 		Message:   "Success",
 		RequestId: "working-request",
@@ -350,7 +361,7 @@ func TestEventProcessingWithErrors(t *testing.T) {
 	// Verify both agents were attempted
 	agentIds := make(map[string]bool)
 	for _, call := range calls {
-		agentIds[call.AgentId] = true
+		agentIds[call.AgentRef.Name] = true
 	}
 	assert.True(t, agentIds["failing-agent"])
 	assert.True(t, agentIds["working-agent"])

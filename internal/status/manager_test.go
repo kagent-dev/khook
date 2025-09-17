@@ -10,12 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 func TestNewManager(t *testing.T) {
@@ -53,7 +54,7 @@ func TestUpdateHookStatus(t *testing.T) {
 					EventConfigurations: []v1alpha2.EventConfiguration{
 						{
 							EventType: "pod-restart",
-							AgentId:   "test-agent",
+							AgentRef:  v1alpha2.ObjectReference{Name: "test-agent"},
 							Prompt:    "test prompt",
 						},
 					},
@@ -81,7 +82,7 @@ func TestUpdateHookStatus(t *testing.T) {
 					EventConfigurations: []v1alpha2.EventConfiguration{
 						{
 							EventType: "pod-pending",
-							AgentId:   "test-agent",
+							AgentRef:  v1alpha2.ObjectReference{Name: "test-agent"},
 							Prompt:    "test prompt",
 						},
 					},
@@ -153,7 +154,7 @@ func TestRecordEventFiring(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordEventFiring(ctx, hook, event, "test-agent")
+	err := manager.RecordEventFiring(ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"})
 
 	assert.NoError(t, err)
 
@@ -226,7 +227,7 @@ func TestRecordError(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordError(ctx, hook, event, testError, "test-agent")
+	err := manager.RecordError(ctx, hook, event, testError, types.NamespacedName{Name: "test-agent", Namespace: "default"})
 
 	assert.NoError(t, err)
 
@@ -266,7 +267,7 @@ func TestRecordAgentCallSuccess(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordAgentCallSuccess(ctx, hook, event, "test-agent", "req-123")
+	err := manager.RecordAgentCallSuccess(ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}, "req-123")
 
 	assert.NoError(t, err)
 
@@ -308,7 +309,7 @@ func TestRecordAgentCallFailure(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	err := manager.RecordAgentCallFailure(ctx, hook, event, "test-agent", testError)
+	err := manager.RecordAgentCallFailure(ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}, testError)
 
 	assert.NoError(t, err)
 
@@ -392,7 +393,7 @@ func TestGetHookStatus(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	status, err := manager.GetHookStatus(ctx, "test-hook", "default")
+	status, err := manager.GetHookStatus(ctx, types.NamespacedName{Name: "test-hook", Namespace: "default"})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
@@ -411,11 +412,11 @@ func TestGetHookStatusNotFound(t *testing.T) {
 	manager := NewManager(fakeClient, fakeRecorder)
 
 	ctx := context.Background()
-	status, err := manager.GetHookStatus(ctx, "nonexistent-hook", "default")
+	status, err := manager.GetHookStatus(ctx, types.NamespacedName{Name: "nonexistent-hook", Namespace: "default"})
 
 	assert.Error(t, err)
 	assert.Nil(t, status)
-	assert.Contains(t, err.Error(), "failed to get hook")
+	assert.Contains(t, err.Error(), "failed to get hook default/nonexistent-hook")
 }
 
 func TestLogControllerStartup(t *testing.T) {

@@ -2,8 +2,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo-dark.svg">
-    <img src="https://raw.githubusercontent.com/antweiss/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/kagent-dev/khook/refs/heads/main/docs/khook-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/kagent-dev/khook/refs/heads/main/docs/khook-logo.svg" alt="khook logo" style="max-width:100%; height:auto;" width="240" />
   </picture>
 </p>
 
@@ -68,14 +68,14 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
 
 1. **Install via Helm (recommended)**:
    ```bash
-   git clone https://github.com/antweiss/khook.git
+   git clone https://github.com/kagent-dev/khook.git
    cd khook
    # Install CRDs first
-   helm install khook-crds ./charts/khook-crds \
+   helm install khook-crds ./helm/khook-crds \
      --namespace kagent \
      --create-namespace
    # Install controller
-   helm install khook ./charts/khook-controller \
+   helm install khook ./helm/khook \
      --namespace kagent \
      --create-namespace
    ```
@@ -83,11 +83,11 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    One-liner (no checkout):
    ```bash
    TMP_DIR="$(mktemp -d)" && \
-     git clone --depth 1 https://github.com/antweiss/khook.git "$TMP_DIR/khook" && \
-     helm install khook-crds "$TMP_DIR/khook/charts/khook-crds" \
+     git clone --depth 1 https://github.com/kagent-dev/khook.git "$TMP_DIR/khook" && \
+     helm install khook-crds "$TMP_DIR/khook/helm/khook-crds" \
        --namespace kagent \
        --create-namespace && \
-     helm install khook "$TMP_DIR/khook/charts/khook-controller" \
+     helm install khook "$TMP_DIR/khook/helm/khook" \
        --namespace kagent \
        --create-namespace && \
      rm -rf "$TMP_DIR"
@@ -391,10 +391,10 @@ Health check endpoints are available on port 8081:
 **Solutions**:
 ```bash
 # Check controller logs
-kubectl logs -n kagent deployment/khook-controller
+kubectl logs -n kagent deployment/khook
 
 # Verify RBAC permissions
-kubectl auth can-i get events --as=system:serviceaccount:kagent:khook-controller
+kubectl auth can-i get events --as=system:serviceaccount:kagent:khook
 
 # Check hook status
 kubectl describe hook your-hook-name
@@ -415,11 +415,11 @@ kubectl describe hook your-hook-name
 kubectl get secret kagent-credentials -o yaml
 
 # Test API connectivity from controller pod
-kubectl exec -n kagent deployment/khook-controller -- \
+kubectl exec -n kagent deployment/khook -- \
   curl -H "Authorization: Bearer $KAGENT_API_KEY" $KAGENT_BASE_URL/health
 
 # Check controller logs for API errors
-kubectl logs -n kagent deployment/khook-controller | grep "kagent-api"
+kubectl logs -n kagent deployment/khook | grep "kagent-api"
 ```
 
 #### Events Not Being Deduplicated
@@ -437,10 +437,10 @@ kubectl logs -n kagent deployment/khook-controller | grep "kagent-api"
 kubectl get pods -n kagent
 
 # Verify leader election is working
-kubectl logs -n kagent deployment/khook-controller | grep "leader"
+kubectl logs -n kagent deployment/khook | grep "leader"
 
 # Check system time synchronization
-kubectl exec -n kagent deployment/khook-controller -- date
+kubectl exec -n kagent deployment/khook -- date
 ```
 
 #### High Memory Usage
@@ -461,7 +461,7 @@ kubectl get hooks -A -o jsonpath='{range .items[*]}{.metadata.name}: {.status.ac
 kubectl top pod -n kagent
 
 # Adjust resource limits
-kubectl patch deployment -n kagent khook-controller -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
+kubectl patch deployment -n kagent khook -p '{"spec":{"template":{"spec":{"containers":[{"name":"manager","resources":{"limits":{"memory":"512Mi"}}}]}}}}'
 ```
 
 ### Debug Mode
@@ -469,14 +469,14 @@ kubectl patch deployment -n kagent khook-controller -p '{"spec":{"template":{"sp
 Enable debug logging for detailed troubleshooting:
 
 ```bash
-kubectl set env deployment/khook-controller -n kagent LOG_LEVEL=debug
+kubectl set env deployment/khook -n kagent LOG_LEVEL=debug
 ```
 
 ### Support
 
 For additional support:
 
-1. Check the [GitHub Issues](https://github.com/antweiss/khook/issues)
+1. Check the [GitHub Issues](https://github.com/kagent-dev/khook/issues)
 2. Review the [troubleshooting guide](docs/troubleshooting.md)
 3. Join the [Kagent community](https://community.kagent.dev)
 
@@ -493,7 +493,7 @@ For additional support:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/antweiss/khook.git
+   git clone https://github.com/kagent-dev/khook.git
    cd khook
    ```
 

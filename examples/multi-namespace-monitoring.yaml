@@ -14,7 +14,9 @@ spec:
   eventConfigurations:
   # Staging environment monitoring with production-like analysis
   - eventType: pod-restart
-    agentId: kagent/staging-analyzer
+    agentRef:
+      name: staging-analyzer
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: STAGING - Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
 
@@ -27,7 +29,9 @@ spec:
       • Complete remediation without human approval
 
   - eventType: probe-failed
-    agentId: kagent/staging-analyzer
+    agentRef:
+      name: staging-analyzer
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: STAGING - Health probe failed for {{.ResourceName}} at {{.EventTime}}. Fix immediately.
 
@@ -52,7 +56,9 @@ spec:
   eventConfigurations:
   # Test environment with focus on CI/CD pipeline issues
   - eventType: pod-pending
-    agentId: kagent/ci-cd-helper
+    agentRef:
+      name: ci-cd-helper
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: TEST ENV - Pod {{.ResourceName}} pending since {{.EventTime}}. Resolve scheduling issue immediately.
 

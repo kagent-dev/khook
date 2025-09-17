@@ -9,9 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/antweiss/khook/api/v1alpha2"
-	"github.com/antweiss/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/api/v1alpha2"
+	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
 // Mock implementations for testing
@@ -24,7 +25,7 @@ func (m *MockEventWatcher) WatchEvents(ctx context.Context) (<-chan interfaces.E
 	return args.Get(0).(<-chan interfaces.Event), args.Error(1)
 }
 
-func (m *MockEventWatcher) FilterEvent(event interfaces.Event, hooks []interface{}) []interfaces.EventMatch {
+func (m *MockEventWatcher) FilterEvent(event interfaces.Event, hooks []*v1alpha2.Hook) []interfaces.EventMatch {
 	args := m.Called(event, hooks)
 	return args.Get(0).([]interfaces.EventMatch)
 }
@@ -43,33 +44,33 @@ type MockDeduplicationManager struct {
 	mock.Mock
 }
 
-func (m *MockDeduplicationManager) ShouldProcessEvent(hookName string, event interfaces.Event) bool {
-	args := m.Called(hookName, event)
+func (m *MockDeduplicationManager) ShouldProcessEvent(hookRef types.NamespacedName, event interfaces.Event) bool {
+	args := m.Called(hookRef, event)
 	return args.Bool(0)
 }
 
-func (m *MockDeduplicationManager) RecordEvent(hookName string, event interfaces.Event) error {
-	args := m.Called(hookName, event)
+func (m *MockDeduplicationManager) RecordEvent(hookRef types.NamespacedName, event interfaces.Event) error {
+	args := m.Called(hookRef, event)
 	return args.Error(0)
 }
 
-func (m *MockDeduplicationManager) CleanupExpiredEvents(hookName string) error {
-	args := m.Called(hookName)
+func (m *MockDeduplicationManager) CleanupExpiredEvents(hookRef types.NamespacedName) error {
+	args := m.Called(hookRef)
 	return args.Error(0)
 }
 
-func (m *MockDeduplicationManager) GetActiveEvents(hookName string) []interfaces.ActiveEvent {
-	args := m.Called(hookName)
+func (m *MockDeduplicationManager) GetActiveEvents(hookRef types.NamespacedName) []interfaces.ActiveEvent {
+	args := m.Called(hookRef)
 	return args.Get(0).([]interfaces.ActiveEvent)
 }
 
-func (m *MockDeduplicationManager) GetActiveEventsWithStatus(hookName string) []interfaces.ActiveEvent {
-	args := m.Called(hookName)
+func (m *MockDeduplicationManager) GetActiveEventsWithStatus(hookRef types.NamespacedName) []interfaces.ActiveEvent {
+	args := m.Called(hookRef)
 	return args.Get(0).([]interfaces.ActiveEvent)
 }
 
-func (m *MockDeduplicationManager) MarkNotified(hookName string, event interfaces.Event) {
-	m.Called(hookName, event)
+func (m *MockDeduplicationManager) MarkNotified(hookRef types.NamespacedName, event interfaces.Event) {
+	m.Called(hookRef, event)
 }
 
 type MockKagentClient struct {
@@ -93,43 +94,43 @@ type MockStatusManager struct {
 	mock.Mock
 }
 
-func (m *MockStatusManager) UpdateHookStatus(ctx context.Context, hook interface{}, activeEvents []interfaces.ActiveEvent) error {
+func (m *MockStatusManager) UpdateHookStatus(ctx context.Context, hook *v1alpha2.Hook, activeEvents []interfaces.ActiveEvent) error {
 	args := m.Called(ctx, hook, activeEvents)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordEventFiring(ctx context.Context, hook interface{}, event interfaces.Event, agentId string) error {
-	args := m.Called(ctx, hook, event, agentId)
+func (m *MockStatusManager) RecordEventFiring(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, agentRef types.NamespacedName) error {
+	args := m.Called(ctx, hook, event, agentRef)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordEventResolved(ctx context.Context, hook interface{}, eventType, resourceName string) error {
+func (m *MockStatusManager) RecordEventResolved(ctx context.Context, hook *v1alpha2.Hook, eventType, resourceName string) error {
 	args := m.Called(ctx, hook, eventType, resourceName)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordError(ctx context.Context, hook interface{}, event interfaces.Event, err error, agentId string) error {
-	args := m.Called(ctx, hook, event, err, agentId)
+func (m *MockStatusManager) RecordError(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, err error, agentRef types.NamespacedName) error {
+	args := m.Called(ctx, hook, event, err, agentRef)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordAgentCallSuccess(ctx context.Context, hook interface{}, event interfaces.Event, agentId, requestId string) error {
-	args := m.Called(ctx, hook, event, agentId, requestId)
+func (m *MockStatusManager) RecordAgentCallSuccess(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, agentRef types.NamespacedName, requestId string) error {
+	args := m.Called(ctx, hook, event, agentRef, requestId)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordAgentCallFailure(ctx context.Context, hook interface{}, event interfaces.Event, agentId string, err error) error {
-	args := m.Called(ctx, hook, event, agentId, err)
+func (m *MockStatusManager) RecordAgentCallFailure(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, agentRef types.NamespacedName, err error) error {
+	args := m.Called(ctx, hook, event, agentRef, err)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) RecordDuplicateEvent(ctx context.Context, hook interface{}, event interfaces.Event) error {
+func (m *MockStatusManager) RecordDuplicateEvent(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event) error {
 	args := m.Called(ctx, hook, event)
 	return args.Error(0)
 }
 
-func (m *MockStatusManager) GetHookStatus(ctx context.Context, hookName, namespace string) (*v1alpha2.HookStatus, error) {
-	args := m.Called(ctx, hookName, namespace)
+func (m *MockStatusManager) GetHookStatus(ctx context.Context, hookRef types.NamespacedName) (*v1alpha2.HookStatus, error) {
+	args := m.Called(ctx, hookRef)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -185,8 +186,10 @@ func TestProcessor_ProcessEvent_Success(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "test-agent",
-			Prompt:    "Handle pod restart for {{.ResourceName}}",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle pod restart for {{.ResourceName}}",
 		},
 	})
 
@@ -196,9 +199,9 @@ func TestProcessor_ProcessEvent_Success(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup expectations
-	mockDeduplicationManager.On("ShouldProcessEvent", "default/test-hook", event).Return(true)
-	mockDeduplicationManager.On("RecordEvent", "default/test-hook", event).Return(nil)
-	mockStatusManager.On("RecordEventFiring", ctx, hook, event, "test-agent").Return(nil)
+	mockDeduplicationManager.On("ShouldProcessEvent", types.NamespacedName{Name: "test-hook", Namespace: "default"}, event).Return(true)
+	mockDeduplicationManager.On("RecordEvent", types.NamespacedName{Name: "test-hook", Namespace: "default"}, event).Return(nil)
+	mockStatusManager.On("RecordEventFiring", ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}).Return(nil)
 
 	expectedResponse := &interfaces.AgentResponse{
 		Success:   true,
@@ -206,13 +209,13 @@ func TestProcessor_ProcessEvent_Success(t *testing.T) {
 		RequestId: "test-request-id",
 	}
 	mockKagentClient.On("CallAgent", ctx, mock.MatchedBy(func(req interfaces.AgentRequest) bool {
-		return req.AgentId == "test-agent" &&
+		return req.AgentRef.Name == "test-agent" &&
 			req.EventName == "pod-restart" &&
 			req.ResourceName == "test-pod"
 	})).Return(expectedResponse, nil)
 
-	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook, event, "test-agent", "test-request-id").Return(nil)
-	mockDeduplicationManager.On("MarkNotified", "default/test-hook", event).Return()
+	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}, "test-request-id").Return(nil)
+	mockDeduplicationManager.On("MarkNotified", types.NamespacedName{Name: "test-hook", Namespace: "default"}, event).Return()
 
 	// Execute
 	err := processor.ProcessEvent(ctx, event, hooks)
@@ -237,8 +240,10 @@ func TestProcessor_ProcessEvent_DuplicateEvent(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "test-agent",
-			Prompt:    "Handle pod restart",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle pod restart",
 		},
 	})
 
@@ -248,7 +253,7 @@ func TestProcessor_ProcessEvent_DuplicateEvent(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup expectations - event should be ignored due to deduplication
-	mockDeduplicationManager.On("ShouldProcessEvent", "default/test-hook", event).Return(false)
+	mockDeduplicationManager.On("ShouldProcessEvent", types.NamespacedName{Name: "test-hook", Namespace: "default"}, event).Return(false)
 	mockStatusManager.On("RecordDuplicateEvent", ctx, hook, event).Return(nil)
 
 	// Execute
@@ -275,8 +280,10 @@ func TestProcessor_ProcessEvent_AgentCallFailure(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "test-agent",
-			Prompt:    "Handle pod restart",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle pod restart",
 		},
 	})
 
@@ -287,11 +294,11 @@ func TestProcessor_ProcessEvent_AgentCallFailure(t *testing.T) {
 	agentError := errors.New("agent call failed")
 
 	// Setup expectations
-	mockDeduplicationManager.On("ShouldProcessEvent", "default/test-hook", event).Return(true)
-	mockDeduplicationManager.On("RecordEvent", "default/test-hook", event).Return(nil)
-	mockStatusManager.On("RecordEventFiring", ctx, hook, event, "test-agent").Return(nil)
+	mockDeduplicationManager.On("ShouldProcessEvent", types.NamespacedName{Name: "test-hook", Namespace: "default"}, event).Return(true)
+	mockDeduplicationManager.On("RecordEvent", types.NamespacedName{Name: "test-hook", Namespace: "default"}, event).Return(nil)
+	mockStatusManager.On("RecordEventFiring", ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}).Return(nil)
 	mockKagentClient.On("CallAgent", ctx, mock.AnythingOfType("interfaces.AgentRequest")).Return(nil, agentError)
-	mockStatusManager.On("RecordAgentCallFailure", ctx, hook, event, "test-agent", agentError).Return(nil)
+	mockStatusManager.On("RecordAgentCallFailure", ctx, hook, event, types.NamespacedName{Name: "test-agent", Namespace: "default"}, agentError).Return(nil)
 
 	// Execute
 	err := processor.ProcessEvent(ctx, event, hooks)
@@ -317,16 +324,20 @@ func TestProcessor_ProcessEvent_MultipleHooks(t *testing.T) {
 	hook1 := createTestHook("hook1", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "agent1",
-			Prompt:    "Agent 1 prompt",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "agent1",
+			},
+			Prompt: "Agent 1 prompt",
 		},
 	})
 
 	hook2 := createTestHook("hook2", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "pod-restart",
-			AgentId:   "agent2",
-			Prompt:    "Agent 2 prompt",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "agent2",
+			},
+			Prompt: "Agent 2 prompt",
 		},
 	})
 
@@ -336,29 +347,29 @@ func TestProcessor_ProcessEvent_MultipleHooks(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup expectations for both hooks
-	mockDeduplicationManager.On("ShouldProcessEvent", "default/hook1", event).Return(true)
-	mockDeduplicationManager.On("RecordEvent", "default/hook1", event).Return(nil)
-	mockStatusManager.On("RecordEventFiring", ctx, hook1, event, "agent1").Return(nil)
+	mockDeduplicationManager.On("ShouldProcessEvent", types.NamespacedName{Name: "hook1", Namespace: "default"}, event).Return(true)
+	mockDeduplicationManager.On("RecordEvent", types.NamespacedName{Name: "hook1", Namespace: "default"}, event).Return(nil)
+	mockStatusManager.On("RecordEventFiring", ctx, hook1, event, types.NamespacedName{Name: "agent1", Namespace: "default"}).Return(nil)
 
-	mockDeduplicationManager.On("ShouldProcessEvent", "default/hook2", event).Return(true)
-	mockDeduplicationManager.On("RecordEvent", "default/hook2", event).Return(nil)
-	mockStatusManager.On("RecordEventFiring", ctx, hook2, event, "agent2").Return(nil)
+	mockDeduplicationManager.On("ShouldProcessEvent", types.NamespacedName{Name: "hook2", Namespace: "default"}, event).Return(true)
+	mockDeduplicationManager.On("RecordEvent", types.NamespacedName{Name: "hook2", Namespace: "default"}, event).Return(nil)
+	mockStatusManager.On("RecordEventFiring", ctx, hook2, event, types.NamespacedName{Name: "agent2", Namespace: "default"}).Return(nil)
 
 	response1 := &interfaces.AgentResponse{Success: true, Message: "Success 1", RequestId: "req1"}
 	response2 := &interfaces.AgentResponse{Success: true, Message: "Success 2", RequestId: "req2"}
 
 	mockKagentClient.On("CallAgent", ctx, mock.MatchedBy(func(req interfaces.AgentRequest) bool {
-		return req.AgentId == "agent1"
+		return req.AgentRef.Name == "agent1"
 	})).Return(response1, nil)
 
 	mockKagentClient.On("CallAgent", ctx, mock.MatchedBy(func(req interfaces.AgentRequest) bool {
-		return req.AgentId == "agent2"
+		return req.AgentRef.Name == "agent2"
 	})).Return(response2, nil)
 
-	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook1, event, "agent1", "req1").Return(nil)
-	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook2, event, "agent2", "req2").Return(nil)
-	mockDeduplicationManager.On("MarkNotified", "default/hook1", event).Return()
-	mockDeduplicationManager.On("MarkNotified", "default/hook2", event).Return()
+	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook1, event, types.NamespacedName{Name: "agent1", Namespace: "default"}, "req1").Return(nil)
+	mockStatusManager.On("RecordAgentCallSuccess", ctx, hook2, event, types.NamespacedName{Name: "agent2", Namespace: "default"}, "req2").Return(nil)
+	mockDeduplicationManager.On("MarkNotified", types.NamespacedName{Name: "hook1", Namespace: "default"}, event).Return()
+	mockDeduplicationManager.On("MarkNotified", types.NamespacedName{Name: "hook2", Namespace: "default"}, event).Return()
 
 	// Execute
 	err := processor.ProcessEvent(ctx, event, hooks)
@@ -383,8 +394,10 @@ func TestProcessor_ProcessEvent_NoMatchingHooks(t *testing.T) {
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
 		{
 			EventType: "oom-kill",
-			AgentId:   "test-agent",
-			Prompt:    "Handle OOM kill",
+			AgentRef: v1alpha2.ObjectReference{
+				Name: "test-agent",
+			},
+			Prompt: "Handle OOM kill",
 		},
 	})
 
@@ -433,7 +446,7 @@ func TestProcessor_UpdateHookStatuses(t *testing.T) {
 
 	// Create test data
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
-		{EventType: "pod-restart", AgentId: "agent1", Prompt: "prompt1"},
+		{EventType: "pod-restart", AgentRef: v1alpha2.ObjectReference{Name: "agent1"}, Prompt: "prompt1"},
 	})
 	hooks := []*v1alpha2.Hook{hook}
 
@@ -450,7 +463,7 @@ func TestProcessor_UpdateHookStatuses(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup expectations
-	mockDeduplicationManager.On("GetActiveEventsWithStatus", "default/test-hook").Return(activeEvents)
+	mockDeduplicationManager.On("GetActiveEventsWithStatus", types.NamespacedName{Name: "test-hook", Namespace: "default"}).Return(activeEvents)
 	mockStatusManager.On("UpdateHookStatus", ctx, hook, activeEvents).Return(nil)
 
 	// Execute
@@ -473,14 +486,14 @@ func TestProcessor_CleanupExpiredEvents(t *testing.T) {
 
 	// Create test data
 	hook := createTestHook("test-hook", "default", []v1alpha2.EventConfiguration{
-		{EventType: "pod-restart", AgentId: "agent1", Prompt: "prompt1"},
+		{EventType: "pod-restart", AgentRef: v1alpha2.ObjectReference{Name: "agent1"}, Prompt: "prompt1"},
 	})
 	hooks := []*v1alpha2.Hook{hook}
 
 	ctx := context.Background()
 
 	// Setup expectations
-	mockDeduplicationManager.On("CleanupExpiredEvents", "default/test-hook").Return(nil)
+	mockDeduplicationManager.On("CleanupExpiredEvents", types.NamespacedName{Name: "test-hook", Namespace: "default"}).Return(nil)
 
 	// Execute
 	err := processor.CleanupExpiredEvents(ctx, hooks)

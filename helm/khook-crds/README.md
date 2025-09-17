@@ -9,7 +9,7 @@ This chart installs the CustomResourceDefinitions (CRDs) required by the Kagent 
 
 ```bash
 # From the repository root
-helm install khook-crds ./charts/kagent-hook-crds \
+helm install khook-crds ./helm/khook-crds \
   --namespace kagent \
   --create-namespace
 ```
@@ -17,7 +17,7 @@ helm install khook-crds ./charts/kagent-hook-crds \
 Install the controller after CRDs are installed:
 
 ```bash
-helm install khook-controller ./charts/kagent-hook-controller \
+helm install khook ./helm/khook-controller \
   --namespace kagent \
   --create-namespace
 ```
@@ -25,6 +25,6 @@ helm install khook-controller ./charts/kagent-hook-controller \
 ## Uninstall
 
 ```bash
-helm uninstall khook-controller -n kagent
+helm uninstall khook -n kagent
 helm uninstall khook-crds -n kagent
 ```

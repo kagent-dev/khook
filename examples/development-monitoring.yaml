@@ -14,7 +14,9 @@ spec:
   eventConfigurations:
   # Development-friendly pod restart monitoring
   - eventType: pod-restart
-    agentId: kagent/dev-helper
+    agentRef:
+      name: dev-helper
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: DEV ENV - Pod {{.ResourceName}} restarted at {{.EventTime}}. Debug and fix immediately.
 
@@ -29,7 +31,9 @@ spec:
 
   # OOM kills in development
   - eventType: oom-kill
-    agentId: kagent/dev-helper
+    agentRef:
+      name: dev-helper
+      namespace: kagent
     prompt: |
       AUTONOMOUS MODE: DEV ENV - OOM kill for {{.ResourceName}} at {{.EventTime}}. Optimize memory immediately.
 
