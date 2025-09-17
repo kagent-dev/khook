@@ -2,9 +2,11 @@
 replicaCount: 1
 
 image:
-  repository: otomato/khook
+  registry: cr.kagent.dev
+  repository: kagent-dev/khook
   pullPolicy: IfNotPresent
-  tag: "latest"
+  # tag will default to Chart.AppVersion if not specified
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
