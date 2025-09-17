@@ -160,12 +160,41 @@ helm-template: helm-version## Generate Helm templates.
 helm-install: helm-version## Install Helm chart.
 	helm install khook helm/khook \
 		--namespace kagent \
-		--create-namespace
+		--create-namespace \
+		--set image.registry=$(DOCKER_REGISTRY) \
+		--set image.repository=$(DOCKER_REPO)/$(DOCKER_IMAGE) \
+		--set image.tag=$(VERSION)
 
 .PHONY: helm-upgrade
 helm-upgrade: helm-version## Upgrade Helm chart.
 	helm upgrade khook helm/khook \
-		--namespace kagent
+		--namespace kagent \
+		--set image.registry=$(DOCKER_REGISTRY) \
+		--set image.repository=$(DOCKER_REPO)/$(DOCKER_IMAGE) \
+		--set image.tag=$(VERSION)
+
+.PHONY: build-deploy
+build-deploy: docker-build helm-deploy ## Build Docker image and deploy via Helm.
+	@echo "Built and deployed image: $(IMG)"
+
+.PHONY: helm-deploy
+helm-deploy: helm-version ## Deploy or upgrade Helm chart.
+	@if helm status khook --namespace kagent >/dev/null 2>&1; then \
+		echo "Upgrading existing release..."; \
+		helm upgrade khook helm/khook \
+			--namespace kagent \
+			--set image.registry=$(DOCKER_REGISTRY) \
+			--set image.repository=$(DOCKER_REPO)/$(DOCKER_IMAGE) \
+			--set image.tag=$(VERSION); \
+	else \
+		echo "Installing new release..."; \
+		helm install khook helm/khook \
+			--namespace kagent \
+			--create-namespace \
+			--set image.registry=$(DOCKER_REGISTRY) \
+			--set image.repository=$(DOCKER_REPO)/$(DOCKER_IMAGE) \
+			--set image.tag=$(VERSION); \
+	fi
 
 .PHONY: helm-uninstall
 helm-uninstall: helm-version## Uninstall Helm chart.
