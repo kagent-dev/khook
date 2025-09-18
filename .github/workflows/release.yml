@@ -4,6 +4,10 @@ on:
   push:
     tags:
     - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
 
 env:
   # Cache key components for better organization
@@ -53,7 +57,14 @@ jobs:
     - name: Build Docker image
       env:
         DOCKER_BUILD_ARGS: --push --platform linux/amd64,linux/arm64
-      run: make docker-build
+      run: | 
+        # if workflow_dispatch is used, use the version input
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          export VERSION=${{ github.event.inputs.version }}
+        else
+          export VERSION=$(echo "$GITHUB_REF" | cut -c12-)
+        fi
+        make docker-build
 
   push-helm-chart:
     needs:
@@ -73,7 +84,14 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build Helm chart
-      run: make helm-publish
+      run: |
+        # if workflow_dispatch is used, use the version input
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          export VERSION=${{ github.event.inputs.version }}
+        else
+          export VERSION=$(echo "$GITHUB_REF" | cut -c12-)
+        fi
+        make helm-publish
 
   release:
     needs:
