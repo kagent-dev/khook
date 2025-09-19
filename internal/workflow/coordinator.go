@@ -31,6 +31,7 @@ func NewCoordinator(
 	ctrlClient client.Client,
 	kagentClient interfaces.KagentClient,
 	eventRecorder interfaces.EventRecorder,
+	sreServer interface{},
 ) *Coordinator {
 	dedupManager := deduplication.NewManager()
 	statusManager := status.NewManager(ctrlClient, eventRecorder)
@@ -43,6 +44,7 @@ func NewCoordinator(
 		kagentClient,
 		statusManager,
 		eventRecorder,
+		sreServer,
 	)
 
 	return &Coordinator{

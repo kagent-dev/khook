@@ -14,6 +14,7 @@ import (
 
 	"github.com/kagent-dev/khook/api/v1alpha2"
 	"github.com/kagent-dev/khook/internal/interfaces"
+	"github.com/kagent-dev/khook/internal/sre"
 )
 
 // Processor handles the complete event processing pipeline
@@ -22,6 +23,7 @@ type Processor struct {
 	deduplicationManager interfaces.DeduplicationManager
 	kagentClient         interfaces.KagentClient
 	statusManager        interfaces.StatusManager
+	sreServer            interface{}
 	logger               logr.Logger
 }
 
@@ -31,12 +33,14 @@ func NewProcessor(
 	deduplicationManager interfaces.DeduplicationManager,
 	kagentClient interfaces.KagentClient,
 	statusManager interfaces.StatusManager,
+	sreServer interface{},
 ) *Processor {
 	return &Processor{
 		eventWatcher:         eventWatcher,
 		deduplicationManager: deduplicationManager,
 		kagentClient:         kagentClient,
 		statusManager:        statusManager,
+		sreServer:            sreServer,
 		logger:               log.Log.WithName("event-processor"),
 	}
 }
@@ -165,6 +169,19 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 	if err := p.statusManager.RecordAgentCallSuccess(ctx, match.Hook, match.Event, agentRef, response.RequestId); err != nil {
 		p.logger.Error(err, "Failed to record agent call success", "hook", hookRef)
 		// Continue even if status recording fails
+	}
+
+	// Add alert to SRE server if available
+	p.logger.Info("Checking SRE server integration", "sreServer", p.sreServer != nil)
+	if p.sreServer != nil {
+		if sreServer, ok := p.sreServer.(*sre.Server); ok {
+			// Convert event to alert and add to SRE server
+			alert := sre.ConvertEventToAlert(match.Event, match.Hook, agentRef, response)
+			sreServer.AddAlert(alert)
+			p.logger.Info("Added alert to SRE server", "alertId", alert.ID)
+		} else {
+			p.logger.Error(nil, "Type assertion failed for SRE server", "sreServerType", fmt.Sprintf("%T", p.sreServer))
+		}
 	}
 
 	// Mark event as notified to suppress re-sending within suppression window
