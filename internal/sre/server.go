@@ -1107,7 +1107,7 @@ func (s *Server) handleDiagnostics(w http.ResponseWriter, r *http.Request) {
 		"api_server_status":                "running",
 		"uptime":                           time.Since(s.startTime).String(),
 		"event_processing_pipeline_health": "healthy",
-		"kagent_api_connectivity":          s.checkKagentConnectivity(),
+		"kagent_api_connectivity":          "managed_by_controller",
 		"plugin_status": map[string]string{
 			"kubernetes_events": "active",
 		},
@@ -1149,11 +1149,6 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(metrics)
 }
 
-// checkKagentConnectivity checks if the Kagent API is reachable
-func (s *Server) checkKagentConnectivity() string {
-	// TODO: Implement actual Kagent API connectivity check
-	return "unknown"
-}
 
 // handleEventTypes handles GET /api/v1/events/types/{eventType}
 func (s *Server) handleEventTypes(w http.ResponseWriter, r *http.Request) {
