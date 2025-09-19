@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -58,6 +59,15 @@ func NewCoordinator(
 // Start begins the workflow coordination process
 func (c *Coordinator) Start(ctx context.Context) error {
 	c.logger.Info("Starting workflow coordinator")
+
+	// Load existing events into SRE server if available
+	c.logger.Info("Attempting to load existing events", "sreServerType", fmt.Sprintf("%T", c.workflowManager.sreServer))
+	if sreServer, ok := c.workflowManager.sreServer.(interface{ LoadExistingEvents(context.Context) }); ok {
+		c.logger.Info("Loading existing events into SRE server")
+		sreServer.LoadExistingEvents(ctx)
+	} else {
+		c.logger.Info("SRE server does not support LoadExistingEvents method")
+	}
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()

@@ -14,7 +14,7 @@ const (
 	// EventTimeoutDuration is the duration after which events are considered resolved
 	EventTimeoutDuration = 10 * time.Minute
 	// NotificationSuppressionDuration is the window to suppress re-sending after success
-	NotificationSuppressionDuration = 10 * time.Minute
+	NotificationSuppressionDuration = 30 * time.Second
 
 	// StatusFiring indicates an event is currently active
 	StatusFiring = "firing"

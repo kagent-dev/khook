@@ -137,13 +137,38 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 		return fmt.Errorf("failed to record event in deduplication manager: %w", err)
 	}
 
-	agentRefNs := match.Hook.Namespace
-	if match.Configuration.AgentRef.Namespace != nil {
-		agentRefNs = *match.Configuration.AgentRef.Namespace
-	}
-	agentRef := types.NamespacedName{
-		Name:      match.Configuration.AgentRef.Name,
-		Namespace: agentRefNs,
+	// Handle both agentId (legacy) and agentRef (new) formats
+	var agentRef types.NamespacedName
+	if match.Configuration.AgentRef.Name != "" {
+		// New format: agentRef
+		agentRefNs := match.Hook.Namespace
+		if match.Configuration.AgentRef.Namespace != nil {
+			agentRefNs = *match.Configuration.AgentRef.Namespace
+		}
+		agentRef = types.NamespacedName{
+			Name:      match.Configuration.AgentRef.Name,
+			Namespace: agentRefNs,
+		}
+	} else {
+		// Legacy format: agentId (parse "namespace/name" format)
+		agentId := match.Configuration.AgentId
+		if agentId == "" {
+			return fmt.Errorf("neither agentRef.name nor agentId is specified")
+		}
+		
+		// Parse agentId format: "namespace/name" or just "name"
+		parts := strings.Split(agentId, "/")
+		if len(parts) == 2 {
+			agentRef = types.NamespacedName{
+				Name:      parts[1],
+				Namespace: parts[0],
+			}
+		} else {
+			agentRef = types.NamespacedName{
+				Name:      parts[0],
+				Namespace: match.Hook.Namespace,
+			}
+		}
 	}
 
 	// Record that the event is firing
