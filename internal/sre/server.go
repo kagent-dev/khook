@@ -76,8 +76,10 @@ func NewServer(port int, client client.Client) *Server {
 		startTime: time.Now(),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
-				return true // Allow all origins for now
+				return true
 			},
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
 		},
 	}
 }
@@ -581,9 +583,7 @@ func (s *Server) handleHooks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost {
-		// Create hook - for now, just return success
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		s.handleCreateHook(w, r)
 		return
 	}
 
@@ -695,6 +695,24 @@ func (s *Server) handleDeleteHook(w http.ResponseWriter, r *http.Request, namesp
 	}
 	
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleCreateHook creates a new Hook resource
+func (s *Server) handleCreateHook(w http.ResponseWriter, r *http.Request) {
+	var hook v1alpha2.Hook
+	if err := json.NewDecoder(r.Body).Decode(&hook); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.client.Create(context.Background(), &hook); err != nil {
+		s.logger.Error(err, "Failed to create hook")
+		http.Error(w, "Failed to create hook", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(hook)
 }
 
 // handleHookValidation handles POST /api/v1/hooks/validate
@@ -1133,17 +1151,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 
 // checkKagentConnectivity checks if the Kagent API is reachable
 func (s *Server) checkKagentConnectivity() string {
-	// This is a simplified connectivity check
-	// In a real implementation, you might want to make an actual HTTP request
-	// to the Kagent API endpoint to verify connectivity
-	
-	// For now, we'll return "unknown" since we don't have direct access
-	// to the Kagent client configuration in this context
-	// A more sophisticated implementation would:
-	// 1. Get the Kagent API URL from environment variables or config
-	// 2. Make a health check request to the API
-	// 3. Return "connected", "disconnected", or "unknown" based on the response
-	
+	// TODO: Implement actual Kagent API connectivity check
 	return "unknown"
 }
 
