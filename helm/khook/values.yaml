@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  registry: cr.kagent.dev
+  registry: ghcr.io
   repository: kagent-dev/khook/khook
   pullPolicy: IfNotPresent
   # tag will default to Chart.AppVersion if not specified
