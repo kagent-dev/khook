@@ -35,11 +35,13 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var configFile string
+	var enablePluginSystem bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for controller manager.")
 	flag.StringVar(&configFile, "config", "", "The controller will load its initial configuration from this file.")
+	flag.BoolVar(&enablePluginSystem, "enable-plugins", true, "Enable the pluggable event source system (default: true).")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -77,7 +79,7 @@ func main() {
 	}
 
 	// Add workflow coordinator to manage hooks and event processing
-	if err := mgr.Add(newWorkflowCoordinator(mgr)); err != nil {
+	if err := mgr.Add(newWorkflowCoordinator(mgr, enablePluginSystem)); err != nil {
 		setupLog.Error(err, "unable to add workflow coordinator")
 		os.Exit(1)
 	}
@@ -91,18 +93,27 @@ func main() {
 
 // workflowCoordinator manages the complete workflow lifecycle using proper services
 type workflowCoordinator struct {
-	mgr ctrl.Manager
+	mgr                ctrl.Manager
+	enablePluginSystem bool
 }
 
-func newWorkflowCoordinator(mgr ctrl.Manager) *workflowCoordinator {
-	return &workflowCoordinator{mgr: mgr}
+func newWorkflowCoordinator(mgr ctrl.Manager, enablePluginSystem bool) *workflowCoordinator {
+	return &workflowCoordinator{
+		mgr:                mgr,
+		enablePluginSystem: enablePluginSystem,
+	}
 }
 
 func (w *workflowCoordinator) NeedLeaderElection() bool { return true }
 
 func (w *workflowCoordinator) Start(ctx context.Context) error {
 	logger := log.Log.WithName("workflow-coordinator")
-	logger.Info("Starting workflow coordinator")
+
+	if w.enablePluginSystem {
+		logger.Info("Starting plugin-based workflow coordinator")
+	} else {
+		logger.Info("Starting legacy workflow coordinator")
+	}
 
 	// Get Kubernetes clients
 	cfg := ctrl.GetConfigOrDie()
@@ -119,10 +130,16 @@ func (w *workflowCoordinator) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Create workflow coordinator
+	// Create workflow coordinator based on plugin system setting
 	eventRecorder := w.mgr.GetEventRecorderFor("khook")
-	coordinator := workflow.NewCoordinator(k8s, w.mgr.GetClient(), kagentCli, eventRecorder)
 
-	// Start the coordinator
-	return coordinator.Start(ctx)
+	if w.enablePluginSystem {
+		// Use plugin-based coordinator
+		coordinator := workflow.NewPluginCoordinator(k8s, w.mgr.GetClient(), kagentCli, eventRecorder)
+		return coordinator.Start(ctx)
+	} else {
+		// Use legacy coordinator
+		coordinator := workflow.NewCoordinator(k8s, w.mgr.GetClient(), kagentCli, eventRecorder)
+		return coordinator.Start(ctx)
+	}
 }

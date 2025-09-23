@@ -1,0 +1,51 @@
+# Plugin Configuration for KHook
+plugins:
+  # Kubernetes Event Source (built-in)
+  - name: "kubernetes"
+    enabled: true
+    config:
+      namespace: "default"  # Can be overridden per deployment
+    
+  # Future Kafka Plugin (example)
+  - name: "kafka"
+    enabled: false
+    path: "/opt/khook/plugins/kafka.so"
+    config:
+      brokers: ["localhost:9092"]
+      topics: ["events", "alerts"]
+      consumerGroup: "khook-consumer"
+      
+  # Future Prometheus Plugin (example)
+  - name: "prometheus"
+    enabled: false
+    path: "/opt/khook/plugins/prometheus.so"
+    config:
+      url: "http://prometheus:9090"
+      queries:
+        - name: "high-cpu"
+          query: "rate(cpu_usage_total[5m]) > 0.8"
+          interval: "30s"
+        - name: "disk-full"
+          query: "disk_free_percent < 10"
+          interval: "60s"
+          
+  # Future Webhook Plugin (example)
+  - name: "webhook"
+    enabled: false
+    path: "/opt/khook/plugins/webhook.so"
+    config:
+      port: 8080
+      endpoints:
+        - path: "/alerts"
+          method: "POST"
+          eventType: "security-alert"
+        - path: "/deployments"
+          method: "POST"
+          eventType: "deployment-failed"
+
+# Global plugin settings
+settings:
+  pluginDirectory: "/opt/khook/plugins"
+  maxPlugins: 10
+  loadTimeout: "30s"
+  healthCheckInterval: "60s"

@@ -1,0 +1,104 @@
+mappings:
+  # Kubernetes Pod Events
+  - eventSource: "kubernetes"
+    eventType: "pod-restart"
+    internalType: "PodRestart"
+    description: "Pod container restart detected"
+    severity: "warning"
+    enabled: true
+    tags:
+      category: "reliability"
+      impact: "medium"
+
+  - eventSource: "kubernetes"
+    eventType: "oom-kill"
+    internalType: "OOMKill"
+    description: "Pod killed due to out of memory"
+    severity: "error"
+    enabled: true
+    tags:
+      category: "resource"
+      impact: "high"
+
+  - eventSource: "kubernetes"
+    eventType: "pod-pending"
+    internalType: "PodPending"
+    description: "Pod stuck in pending state"
+    severity: "warning"
+    enabled: true
+    tags:
+      category: "scheduling"
+      impact: "medium"
+
+  - eventSource: "kubernetes"
+    eventType: "probe-failed"
+    internalType: "ProbeFailed"
+    description: "Health probe failure detected"
+    severity: "warning"
+    enabled: true
+    tags:
+      category: "health"
+      impact: "medium"
+
+  # Future Kafka Events (example for extensibility)
+  - eventSource: "kafka"
+    eventType: "consumer-lag"
+    internalType: "ConsumerLag"
+    description: "Kafka consumer lag detected"
+    severity: "warning"
+    enabled: false
+    tags:
+      category: "messaging"
+      impact: "medium"
+
+  - eventSource: "kafka"
+    eventType: "partition-offline"
+    internalType: "PartitionOffline"
+    description: "Kafka partition went offline"
+    severity: "error"
+    enabled: false
+    tags:
+      category: "messaging"
+      impact: "high"
+
+  # Future Prometheus Events (example for extensibility)
+  - eventSource: "prometheus"
+    eventType: "high-cpu"
+    internalType: "HighCPU"
+    description: "High CPU usage detected"
+    severity: "warning"
+    enabled: false
+    tags:
+      category: "resource"
+      impact: "medium"
+
+  - eventSource: "prometheus"
+    eventType: "disk-full"
+    internalType: "DiskFull"
+    description: "Disk space critically low"
+    severity: "critical"
+    enabled: false
+    tags:
+      category: "resource"
+      impact: "critical"
+
+  # Future Webhook Events (example for extensibility)
+  - eventSource: "webhook"
+    eventType: "deployment-failed"
+    internalType: "DeploymentFailed"
+    description: "Deployment failure notification"
+    severity: "error"
+    enabled: false
+    tags:
+      category: "deployment"
+      impact: "high"
+
+  - eventSource: "webhook"
+    eventType: "security-alert"
+    internalType: "SecurityAlert"
+    description: "Security alert received"
+    severity: "critical"
+    enabled: false
+    tags:
+      category: "security"
+      impact: "critical"

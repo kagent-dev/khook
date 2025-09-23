@@ -16,10 +16,92 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
 ### Key Features
 
 - **Multi-Event Monitoring**: Monitor multiple Kubernetes event types (pod-restart, pod-pending, oom-kill, probe-failed) in a single hook configuration
+- **Pluggable Event Sources**: Extensible plugin architecture supporting Kubernetes, Kafka, webhooks, and custom event sources
 - **Basic Deduplication**: Prevents duplicate notifications with 10-minute timeout logic
 - **Kagent Integration**:  Integrates with the Kagent platform for AI agent incident response. (Can in theory talk to any a2a-enabled agent)
 - **Status Tracking**: Provides real-time status updates and audit trails through Kubernetes events
 - **High Availability**: Supports leader election for production deployments
+
+## Plugin Architecture
+
+KHook features a pluggable event source architecture that allows you to monitor events from multiple sources beyond Kubernetes:
+
+### Built-in Event Sources
+
+- **Kubernetes Events**: Pod restarts, OOM kills, scheduling failures, probe failures
+- **Event Mapping**: Configurable mapping from raw events to internal event types
+- **Multi-Source Processing**: Unified event processing pipeline for all sources
+
+### Plugin System
+
+```mermaid
+graph TB
+    subgraph "Event Sources"
+        K8s[Kubernetes Plugin]
+        Kafka[Kafka Plugin]
+        Webhook[Webhook Plugin]
+        Custom[Custom Plugin]
+    end
+    
+    subgraph "Core System"
+        PM[Plugin Manager]
+        EM[Event Mapper]
+        PP[Pipeline Processor]
+    end
+    
+    subgraph "Output"
+        Hook[Hook Processor]
+        Kagent[Kagent API]
+    end
+    
+    K8s --> PM
+    Kafka --> PM
+    Webhook --> PM
+    Custom --> PM
+    
+    PM --> EM
+    EM --> PP
+    PP --> Hook
+    Hook --> Kagent
+```
+
+### Event Source Development
+
+Create custom event sources by implementing the `EventSource` interface:
+
+```go
+type EventSource interface {
+    Name() string
+    Version() string
+    SupportedEventTypes() []string
+    Initialize(ctx context.Context, config map[string]interface{}) error
+    Start(ctx context.Context, eventCh chan<- Event) error
+    Stop() error
+}
+```
+
+### Configuration
+
+Configure event sources and mappings via YAML:
+
+```yaml
+# config/event-mappings.yaml
+mappings:
+  - eventSource: kubernetes
+    eventType: pod-restart
+    internalType: PodRestart
+    severity: warning
+    enabled: true
+
+# config/plugins.yaml  
+plugins:
+  - name: kubernetes
+    enabled: true
+    config:
+      namespace: "default"
+```
+
+For detailed plugin development guide, see [Plugin Development Documentation](docs/plugin-development.md).
 
 ## Flow: Kubernetes Event to Kagent Task
 
