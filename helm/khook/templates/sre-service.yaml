@@ -1,0 +1,23 @@
+{{- if .Values.sre.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "khook.fullname" . }}-sre
+  namespace: {{ include "khook.namespace" . }}
+  labels:
+    {{- include "khook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sre-server
+  {{- with .Values.sre.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.sre.service.type }}
+  ports:
+  - name: sre-server
+    port: {{ .Values.sre.service.port }}
+    targetPort: sre-server
+    protocol: TCP
+  selector:
+    {{- include "khook.selectorLabels" . | nindent 4 }}
+{{- end }}
