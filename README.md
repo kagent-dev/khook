@@ -70,6 +70,8 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    ```bash
    git clone https://github.com/kagent-dev/khook.git
    cd khook
+   # Generate Chart.yaml files from templates
+   make helm-version
    # Install CRDs first
    helm install khook-crds ./helm/khook-crds \
      --namespace kagent \
@@ -84,15 +86,24 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    ```bash
    TMP_DIR="$(mktemp -d)" && \
      git clone --depth 1 https://github.com/kagent-dev/khook.git "$TMP_DIR/khook" && \
-     helm install khook-crds "$TMP_DIR/khook/helm/khook-crds" \
+     cd "$TMP_DIR/khook" && \
+     make helm-version && \
+     helm install khook-crds ./helm/khook-crds \
        --namespace kagent \
        --create-namespace && \
-     helm install khook "$TMP_DIR/khook/helm/khook" \
+     helm install khook ./helm/khook \
        --namespace kagent \
        --create-namespace && \
+     cd - && \
      rm -rf "$TMP_DIR"
    ```
 
+   **Alternative using Makefile** (simplest approach):
+   ```bash
+   git clone https://github.com/kagent-dev/khook.git
+   cd khook
+   make helm-deploy
+   ```
 
 2. **Create Your First Hook**:
    ```yaml
