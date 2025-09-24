@@ -66,4 +66,4 @@ helm/*/requirements.lock
 
 # Generated files
 *.pb.go
-zz_generated.*.go
+zz_generated.*.gobuild-multiarch.sh

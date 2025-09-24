@@ -25,7 +25,7 @@ type HookSpec struct {
 // EventConfiguration defines a single event type configuration
 type EventConfiguration struct {
 	// EventType specifies the type of Kubernetes event to monitor
-	// +kubebuilder:validation:Enum=pod-restart;pod-pending;oom-kill;probe-failed
+	// +kubebuilder:validation:Enum=pod-restart;pod-pending;oom-kill;probe-failed;node-not-ready
 	// +kubebuilder:validation:Required
 	EventType string `json:"eventType"`
 
@@ -84,14 +84,15 @@ func (h *Hook) Validate() error {
 func (h *Hook) validateEventConfiguration(config EventConfiguration, index int) error {
 	// Validate EventType
 	validEventTypes := map[string]bool{
-		"pod-restart":  true,
-		"pod-pending":  true,
-		"oom-kill":     true,
-		"probe-failed": true,
+		"pod-restart":    true,
+		"pod-pending":    true,
+		"oom-kill":       true,
+		"probe-failed":   true,
+		"node-not-ready": true,
 	}
 
 	if !validEventTypes[config.EventType] {
-		return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed", index, config.EventType)
+		return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed, node-not-ready", index, config.EventType)
 	}
 
 	// Validate AgentRef
@@ -390,7 +391,7 @@ func validateHook(hook *Hook) (admission.Warnings, error) {
 
 		// Validate event type
 		if !isValidEventType(config.EventType) {
-			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].eventType: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed", i, config.EventType))
+			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].eventType: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed, node-not-ready", i, config.EventType))
 		}
 
 		// Validate agentId is not empty
@@ -419,10 +420,11 @@ func validateHook(hook *Hook) (admission.Warnings, error) {
 // isValidEventType checks if the provided event type is valid
 func isValidEventType(eventType string) bool {
 	validTypes := map[string]bool{
-		"pod-restart":  true,
-		"pod-pending":  true,
-		"oom-kill":     true,
-		"probe-failed": true,
+		"pod-restart":    true,
+		"pod-pending":    true,
+		"oom-kill":       true,
+		"probe-failed":   true,
+		"node-not-ready": true,
 	}
 	return validTypes[eventType]
 }
