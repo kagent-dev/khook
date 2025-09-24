@@ -251,14 +251,18 @@ func (w *Watcher) mapKubernetesEvent(k8sEvent *eventsv1.Event) *interfaces.Event
 
 // mapEventType maps Kubernetes event reasons to our event types
 func (w *Watcher) mapEventType(k8sEvent *eventsv1.Event) string {
-	// Ignore Normal events entirely; only act on warnings/errors
-	if strings.ToLower(k8sEvent.Type) == "normal" {
-		return ""
-	}
-	// Map based on the regarding object kind and event reason
+	// Map based on the regarding object kind and event reason first
 	switch k8sEvent.Regarding.Kind {
 	case "Pod":
+		// For pods, ignore Normal events entirely; only act on warnings/errors
+		if strings.ToLower(k8sEvent.Type) == "normal" {
+			return ""
+		}
 		return w.mapPodEventType(k8sEvent)
+	case "Node":
+		// For nodes, we need to check both Normal and Warning events
+		// as NodeNotReady events are typically Normal type
+		return w.mapNodeEventType(k8sEvent)
 	default:
 		return ""
 	}
@@ -316,4 +320,22 @@ func (w *Watcher) mapPodEventType(k8sEvent *eventsv1.Event) string {
 	}
 
 	return ""
+}
+
+// mapNodeEventType maps node-related events to our event types
+func (w *Watcher) mapNodeEventType(k8sEvent *eventsv1.Event) string {
+	reason := strings.ToLower(k8sEvent.Reason)
+	message := strings.ToLower(k8sEvent.Note)
+	eventType := strings.ToLower(k8sEvent.Type)
+
+	switch {
+	// Node not ready events
+	case reason == "nodenotready":
+		return "node-not-ready"
+		
+	default:
+		// Log unknown node events for future enhancement
+		w.logger.V(1).Info("Unknown node event", "reason", reason, "type", eventType, "message", message)
+		return ""
+	}
 }
