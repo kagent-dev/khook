@@ -110,28 +110,35 @@ For how agents respond with either a Message or a Task in A2A, see “Life of a 
    apiVersion: kagent.dev/v1alpha2
    kind: Hook
    metadata:
-     name: pod-monitoring-hook
-     namespace: default
+     name: basic-pod-monitoring
+     namespace: kagent
+     labels:
+       environment: development
+       monitoring-type: basic
    spec:
      eventConfigurations:
+     # Monitor pod restarts
      - eventType: pod-restart
-       agentId: kagent/incident-responder
+       agentRef:
+         name: k8s-agent
        prompt: |
-         AUTONOMOUS MODE: A pod has restarted. Analyze the cause and implement fixes immediately.
-
+         AUTONOMOUS MODE: Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
          INSTRUCTIONS:
          • Use all available tools to diagnose and resolve the issue
+         • Focus on common issues: crashes, resource limits, health checks, configuration
          • Annotate fixed resources with: kagentFix=<timestamp>
          • If patching fails: delete and recreate resources
          • Never ask for permission - assume autonomous execution
          • Complete remediation without human approval
+     # Monitor OOM kills
      - eventType: oom-kill
-       agentId: kagent/memory-analyzer
+       agentRef:
+         name: k8s-agent
        prompt: |
-         AUTONOMOUS MODE: OOM kill detected. Analyze memory usage and optimize immediately.
-
+         AUTONOMOUS MODE: OOM kill for {{.ResourceName}} at {{.EventTime}}. Analyze memory and optimize immediately.
          INSTRUCTIONS:
          • Use all available tools to diagnose and resolve memory issues
+         • Focus on memory leaks, inefficient algorithms, large allocations, GC issues
          • Annotate fixed resources with: kagentFix=<timestamp>
          • If patching fails: delete and recreate resources
          • Never ask for permission - assume autonomous execution
