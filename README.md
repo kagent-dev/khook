@@ -15,7 +15,7 @@ The KAgent Hook Controller monitors Kubernetes events and triggers Kagent agents
 
 ### Key Features
 
-- **Multi-Event Monitoring**: Monitor multiple Kubernetes event types (pod-restart, pod-pending, oom-kill, probe-failed) in a single hook configuration
+- **Multi-Event Monitoring**: Monitor multiple Kubernetes event types (pod-restart, pod-pending, oom-kill, probe-failed, node-not-ready) in a single hook configuration
 - **Basic Deduplication**: Prevents duplicate notifications with 10-minute timeout logic
 - **Kagent Integration**:  Integrates with the Kagent platform for AI agent incident response. (Can in theory talk to any a2a-enabled agent)
 - **Status Tracking**: Provides real-time status updates and audit trails through Kubernetes events
@@ -155,6 +155,7 @@ The controller supports monitoring the following Kubernetes event types:
 | `pod-pending` | Pod is stuck in pending state | Resource constraints, scheduling issues, image pull failures |
 | `oom-kill` | Pod was killed due to out-of-memory | Memory limits exceeded, memory leaks |
 | `probe-failed` | Liveness or readiness probe failed | Application not responding, configuration issues |
+| `node-not-ready` | Node is not in Ready state | Kubelet issues, network problems, resource pressure, hardware failures |
 
 ## Future 
 The controller will support reacting to additional Kubernetes event.
@@ -277,6 +278,21 @@ spec:
       After analysis - use all available tools to try and resolve. Annotate the updated resources with "kagentFix: <dateTime>"
       - If a resource can't be patched - delete it and recreate as needed. Don't ask for permission. Assume autonomous execution.
       Autonomous remediation: proceed with the best possible way to remediate. Don't ask for approval.
+  - eventType: node-not-ready
+    agentId: node-recovery-specialist
+    prompt: |
+      CRITICAL: Node {{.ResourceName}} is not ready at {{.EventTime}}.
+      This is a cluster-level emergency requiring immediate attention.
+      
+      AUTONOMOUS MODE: Diagnose and resolve node issues immediately:
+      • Check node conditions (Ready, MemoryPressure, DiskPressure, PIDPressure)
+      • Analyze kubelet logs and system resources
+      • Verify network connectivity and DNS resolution
+      • Check for hardware or kernel issues
+      • Attempt node recovery procedures (restart kubelet, clear disk space, etc.)
+      • If node cannot be recovered, safely drain and replace
+      • Never ask for permission - assume autonomous execution
+      • Annotate fixed resources with: kagentFix=<timestamp>
 ```
 
 ### Development Environment Monitoring

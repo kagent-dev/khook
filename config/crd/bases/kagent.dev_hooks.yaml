@@ -71,6 +71,7 @@ spec:
                       - pod-pending
                       - oom-kill
                       - probe-failed
+                      - node-not-ready
                       type: string
                     prompt:
                       description: Prompt specifies the prompt template to send to
