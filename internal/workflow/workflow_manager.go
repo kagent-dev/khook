@@ -24,6 +24,7 @@ type WorkflowManager struct {
 	kagentClient  interfaces.KagentClient
 	statusManager interfaces.StatusManager
 	eventRecorder interfaces.EventRecorder
+	sreServer     interface{}
 	logger        logr.Logger
 }
 
@@ -35,6 +36,7 @@ func NewWorkflowManager(
 	kagentClient interfaces.KagentClient,
 	statusManager interfaces.StatusManager,
 	eventRecorder interfaces.EventRecorder,
+	sreServer interface{},
 ) *WorkflowManager {
 	return &WorkflowManager{
 		k8sClient:     k8sClient,
@@ -43,6 +45,7 @@ func NewWorkflowManager(
 		kagentClient:  kagentClient,
 		statusManager: statusManager,
 		eventRecorder: eventRecorder,
+		sreServer:     sreServer,
 		logger:        log.Log.WithName("workflow-manager"),
 	}
 }
@@ -101,7 +104,7 @@ func (wm *WorkflowManager) runNamespaceWorkflow(
 	wm.logger.Info("Namespace workflow started", "namespace", namespace)
 
 	watcher := event.NewWatcher(wm.k8sClient, namespace)
-	processor := pipeline.NewProcessor(watcher, wm.dedupManager, wm.kagentClient, wm.statusManager)
+	processor := pipeline.NewProcessor(watcher, wm.dedupManager, wm.kagentClient, wm.statusManager, wm.sreServer)
 
 	if err := processor.ProcessEventWorkflow(ctx, eventTypes, hooks); err != nil {
 		wm.logger.Error(err, "Namespace workflow exited with error", "namespace", namespace)

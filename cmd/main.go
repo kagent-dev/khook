@@ -17,6 +17,7 @@ import (
 	kagentv1alpha2 "github.com/kagent-dev/khook/api/v1alpha2"
 	kclient "github.com/kagent-dev/khook/internal/client"
 	"github.com/kagent-dev/khook/internal/config"
+	"github.com/kagent-dev/khook/internal/sre"
 	"github.com/kagent-dev/khook/internal/workflow"
 )
 
@@ -76,8 +77,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Start SRE-IDE server
+	sreServer := sre.NewServer(8082, mgr.GetClient())
+	go func() {
+		ctx := context.Background()
+		if err := sreServer.Start(ctx); err != nil {
+			setupLog.Error(err, "problem running SRE-IDE server")
+		}
+	}()
+
 	// Add workflow coordinator to manage hooks and event processing
-	if err := mgr.Add(newWorkflowCoordinator(mgr)); err != nil {
+	if err := mgr.Add(newWorkflowCoordinator(mgr, sreServer)); err != nil {
 		setupLog.Error(err, "unable to add workflow coordinator")
 		os.Exit(1)
 	}
@@ -91,11 +101,15 @@ func main() {
 
 // workflowCoordinator manages the complete workflow lifecycle using proper services
 type workflowCoordinator struct {
-	mgr ctrl.Manager
+	mgr       ctrl.Manager
+	sreServer *sre.Server
 }
 
-func newWorkflowCoordinator(mgr ctrl.Manager) *workflowCoordinator {
-	return &workflowCoordinator{mgr: mgr}
+func newWorkflowCoordinator(mgr ctrl.Manager, sreServer *sre.Server) *workflowCoordinator {
+	return &workflowCoordinator{
+		mgr:       mgr,
+		sreServer: sreServer,
+	}
 }
 
 func (w *workflowCoordinator) NeedLeaderElection() bool { return true }
@@ -121,7 +135,7 @@ func (w *workflowCoordinator) Start(ctx context.Context) error {
 
 	// Create workflow coordinator
 	eventRecorder := w.mgr.GetEventRecorderFor("khook")
-	coordinator := workflow.NewCoordinator(k8s, w.mgr.GetClient(), kagentCli, eventRecorder)
+	coordinator := workflow.NewCoordinator(k8s, w.mgr.GetClient(), kagentCli, eventRecorder, w.sreServer)
 
 	// Start the coordinator
 	return coordinator.Start(ctx)

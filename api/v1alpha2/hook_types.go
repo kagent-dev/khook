@@ -29,9 +29,13 @@ type EventConfiguration struct {
 	// +kubebuilder:validation:Required
 	EventType string `json:"eventType"`
 
-	// AgentRef specifies the Kagent agent to call when this event occurs
-	// +kubebuilder:validation:Required
-	AgentRef ObjectReference `json:"agentRef"`
+	// AgentRef specifies the Kagent agent to call when this event occurs (new format)
+	// +kubebuilder:validation:Optional
+	AgentRef ObjectReference `json:"agentRef,omitempty"`
+
+	// AgentId specifies the Kagent agent to call when this event occurs (legacy format)
+	// +kubebuilder:validation:Optional
+	AgentId string `json:"agentId,omitempty"`
 
 	// Prompt specifies the prompt template to send to the agent
 	// +kubebuilder:validation:Required

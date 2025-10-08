@@ -85,6 +85,15 @@ metrics:
     labels: {}
     annotations: {}
 
+# SRE API Server configuration
+sre:
+  enabled: true
+  port: 8082
+  service:
+    type: ClusterIP
+    port: 8082
+    annotations: {}
+
 # RBAC configuration
 rbac:
   create: true
