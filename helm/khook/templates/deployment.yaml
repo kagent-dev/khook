@@ -64,6 +64,11 @@ spec:
         - name: health
           containerPort: 8081
           protocol: TCP
+        {{- if .Values.sre.enabled }}
+        - name: sre-server
+          containerPort: {{ .Values.sre.port }}
+          protocol: TCP
+        {{- end }}
         livenessProbe:
           {{- toYaml .Values.healthCheck.livenessProbe | nindent 10 }}
         readinessProbe:
