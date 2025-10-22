@@ -22,11 +22,52 @@ type HookSpec struct {
 	EventConfigurations []EventConfiguration `json:"eventConfigurations"`
 }
 
-// EventConfiguration defines a single event type configuration
+// EventConfiguration defines either a single built-in event configuration
+// or a grouped source configuration with multiple events.
 type EventConfiguration struct {
+	// Single built-in event form (Kubernetes events watcher)
 	// EventType specifies the type of Kubernetes event to monitor
 	// +kubebuilder:validation:Enum=pod-restart;pod-pending;oom-kill;probe-failed;node-not-ready
+	// +kubebuilder:validation:Optional
+	EventType string `json:"eventType,omitempty"`
+
+	// AgentRef specifies the Kagent agent to call when this event occurs
+	// +kubebuilder:validation:Optional
+	AgentRef ObjectReference `json:"agentRef,omitempty"`
+
+	// Prompt specifies the prompt template to send to the agent
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
+	Prompt string `json:"prompt,omitempty"`
+
+	// Grouped source form (external or named source with multiple events)
+	// +kubebuilder:validation:Optional
+	Source *EventSourceEvents `json:"source,omitempty"`
+}
+
+// EventSourceEvents groups multiple events for a specific source. The source
+// is identified by name/namespace (ExternalEventSource), and contains a list
+// of per-event configurations.
+type EventSourceEvents struct {
+	// Name of the ExternalEventSource
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Namespace of the ExternalEventSource. Defaults to the Hook namespace if omitted.
+	// +kubebuilder:validation:Optional
+	Namespace *string `json:"namespace,omitempty"`
+
+	// Events is the list of event configurations for this source
+	// +kubebuilder:validation:MinItems=1
+	Events []SourceEvent `json:"events"`
+}
+
+// SourceEvent describes a single event mapping for a grouped source
+type SourceEvent struct {
+	// EventType specifies the event type to match
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	EventType string `json:"eventType"`
 
 	// AgentRef specifies the Kagent agent to call when this event occurs
@@ -82,7 +123,17 @@ func (h *Hook) Validate() error {
 
 // validateEventConfiguration validates a single event configuration
 func (h *Hook) validateEventConfiguration(config EventConfiguration, index int) error {
-	// Validate EventType
+	// Union validation: either single-event form OR grouped source form
+	hasSingle := strings.TrimSpace(config.EventType) != "" || strings.TrimSpace(config.Prompt) != "" || strings.TrimSpace(config.AgentRef.Name) != ""
+	hasGrouped := config.Source != nil
+
+	if hasSingle && hasGrouped {
+		return fmt.Errorf("event configuration %d: cannot specify both single-event fields and source.events", index)
+	}
+	if !hasSingle && !hasGrouped {
+		return fmt.Errorf("event configuration %d: must specify either single-event fields or source.events", index)
+	}
+
 	validEventTypes := map[string]bool{
 		"pod-restart":    true,
 		"pod-pending":    true,
@@ -91,40 +142,68 @@ func (h *Hook) validateEventConfiguration(config EventConfiguration, index int) 
 		"node-not-ready": true,
 	}
 
-	if !validEventTypes[config.EventType] {
-		return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed, node-not-ready", index, config.EventType)
+	if hasSingle {
+		if !validEventTypes[config.EventType] {
+			return fmt.Errorf("event configuration %d: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed", index, config.EventType)
+		}
+
+		if strings.TrimSpace(config.AgentRef.Name) == "" {
+			return fmt.Errorf("event configuration %d: agentRef.name cannot be empty", index)
+		}
+		if len(config.AgentRef.Name) > 100 {
+			return fmt.Errorf("event configuration %d: agentId too long: %d characters (max 100)", index, len(config.AgentRef.Name))
+		}
+		for _, r := range config.AgentRef.Name {
+			if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
+				return fmt.Errorf("event configuration %d: agentId contains invalid character '%c', only alphanumeric, hyphens, and underscores allowed", index, r)
+			}
+		}
+
+		if strings.TrimSpace(config.Prompt) == "" {
+			return fmt.Errorf("event configuration %d: prompt cannot be empty", index)
+		}
+		if len(config.Prompt) > 10000 {
+			return fmt.Errorf("event configuration %d: prompt too long: %d characters (max 10000)", index, len(config.Prompt))
+		}
+		if err := h.validatePromptTemplate(config.Prompt, index); err != nil {
+			return err
+		}
+		return nil
 	}
 
-	// Validate AgentRef
-	if strings.TrimSpace(config.AgentRef.Name) == "" {
-		return fmt.Errorf("event configuration %d: agentRef.name cannot be empty", index)
+	// Grouped source form
+	if strings.TrimSpace(config.Source.Name) == "" {
+		return fmt.Errorf("event configuration %d: source.name cannot be empty", index)
 	}
-
-	if len(config.AgentRef.Name) > 100 {
-		return fmt.Errorf("event configuration %d: agentId too long: %d characters (max 100)", index, len(config.AgentRef.Name))
+	if len(config.Source.Events) == 0 {
+		return fmt.Errorf("event configuration %d: source.events cannot be empty", index)
 	}
-
-	// Validate agent ID format (alphanumeric, hyphens, underscores only)
-	for _, r := range config.AgentRef.Name {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
-			return fmt.Errorf("event configuration %d: agentId contains invalid character '%c', only alphanumeric, hyphens, and underscores allowed", index, r)
+	for j, se := range config.Source.Events {
+		// External event sources can have arbitrary event types, just validate non-empty
+		if strings.TrimSpace(se.EventType) == "" {
+			return fmt.Errorf("event configuration %d source.events[%d]: eventType cannot be empty", index, j)
+		}
+		if strings.TrimSpace(se.AgentRef.Name) == "" {
+			return fmt.Errorf("event configuration %d source.events[%d]: agentRef.name cannot be empty", index, j)
+		}
+		if len(se.AgentRef.Name) > 100 {
+			return fmt.Errorf("event configuration %d source.events[%d]: agentId too long: %d characters (max 100)", index, j, len(se.AgentRef.Name))
+		}
+		for _, r := range se.AgentRef.Name {
+			if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
+				return fmt.Errorf("event configuration %d source.events[%d]: agentId contains invalid character '%c'", index, j, r)
+			}
+		}
+		if strings.TrimSpace(se.Prompt) == "" {
+			return fmt.Errorf("event configuration %d source.events[%d]: prompt cannot be empty", index, j)
+		}
+		if len(se.Prompt) > 10000 {
+			return fmt.Errorf("event configuration %d source.events[%d]: prompt too long: %d characters (max 10000)", index, j, len(se.Prompt))
+		}
+		if err := h.validatePromptTemplate(se.Prompt, index); err != nil {
+			return err
 		}
 	}
-
-	// Validate Prompt
-	if strings.TrimSpace(config.Prompt) == "" {
-		return fmt.Errorf("event configuration %d: prompt cannot be empty", index)
-	}
-
-	if len(config.Prompt) > 10000 {
-		return fmt.Errorf("event configuration %d: prompt too long: %d characters (max 10000)", index, len(config.Prompt))
-	}
-
-	// Validate template constructs
-	if err := h.validatePromptTemplate(config.Prompt, index); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -381,32 +460,40 @@ func validateHook(hook *Hook) (admission.Warnings, error) {
 	}
 
 	// Validate each event configuration
-	eventTypes := make(map[string]bool)
+	seenEventTypes := make(map[string]bool)
 	for i, config := range hook.Spec.EventConfigurations {
-		// Check for duplicate event types
-		if eventTypes[config.EventType] {
-			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d]: duplicate eventType '%s'", i, config.EventType))
-		}
-		eventTypes[config.EventType] = true
-
-		// Validate event type
-		if !isValidEventType(config.EventType) {
-			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].eventType: invalid event type '%s', must be one of: pod-restart, pod-pending, oom-kill, probe-failed, node-not-ready", i, config.EventType))
+		// Per-item validation (union rules, field checks)
+		if err := hook.validateEventConfiguration(config, i); err != nil {
+			allErrs = append(allErrs, err.Error())
+			continue
 		}
 
-		// Validate agentId is not empty
-		if strings.TrimSpace(config.AgentRef.Name) == "" {
-			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].agentId: cannot be empty", i))
+		// Track duplicates across the entire spec
+		if config.Source == nil {
+			if seenEventTypes[config.EventType] {
+				allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d]: duplicate eventType '%s'", i, config.EventType))
+			}
+			seenEventTypes[config.EventType] = true
+		} else {
+			for _, se := range config.Source.Events {
+				if seenEventTypes[se.EventType] {
+					allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].source.events: duplicate eventType '%s'", i, se.EventType))
+				}
+				seenEventTypes[se.EventType] = true
+			}
 		}
 
-		// Validate prompt is not empty
-		if strings.TrimSpace(config.Prompt) == "" {
-			allErrs = append(allErrs, fmt.Sprintf("spec.eventConfigurations[%d].prompt: cannot be empty", i))
-		}
-
-		// Warn about potentially long prompts
-		if len(config.Prompt) > 1000 {
-			warnings = append(warnings, fmt.Sprintf("spec.eventConfigurations[%d].prompt: prompt is very long (%d characters), consider shortening for better performance", i, len(config.Prompt)))
+		// Warnings for long prompts
+		if config.Source == nil {
+			if len(config.Prompt) > 1000 {
+				warnings = append(warnings, fmt.Sprintf("spec.eventConfigurations[%d].prompt: prompt is very long (%d characters), consider shortening for better performance", i, len(config.Prompt)))
+			}
+		} else {
+			for j, se := range config.Source.Events {
+				if len(se.Prompt) > 1000 {
+					warnings = append(warnings, fmt.Sprintf("spec.eventConfigurations[%d].source.events[%d].prompt: prompt is very long (%d characters), consider shortening for better performance", i, j, len(se.Prompt)))
+				}
+			}
 		}
 	}
 

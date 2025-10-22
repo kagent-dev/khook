@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-event-source
+  namespace: kagent
+  labels:
+    app: redis-event-source
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-event-source
+  template:
+    metadata:
+      labels:
+        app: redis-event-source
+    spec:
+      containers:
+      - name: redis-event-source
+        image: localhost:5001/redis-event-source:latest
+        imagePullPolicy: Always
+        command: ["/root/redis-event-source"]
+        args:
+        - "-port=50051"
+        - "-redis-addr=redis://redis.redis.svc.cluster.local:6379"
+        ports:
+        - containerPort: 50051
+          name: grpc
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-event-source
+  namespace: kagent
+  labels:
+    app: redis-event-source
+spec:
+  type: ClusterIP
+  ports:
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
+    name: grpc
+  selector:
+    app: redis-event-source

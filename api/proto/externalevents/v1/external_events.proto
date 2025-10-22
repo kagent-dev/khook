@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package externalevents.v1;
+
+option go_package = "github.com/kagent-dev/khook/api/proto/externalevents/v1;externaleventsv1";
+
+message WatchRequest {
+  string namespace = 1;
+  string config_json = 2;
+  repeated string hints = 3;
+}
+
+message EventMessage {
+  string type = 1;
+  string resource_name = 2;
+  string namespace = 3;
+  string reason = 4;
+  string message = 5;
+  string uid = 6;
+  map<string, string> metadata = 7;
+  int64 timestamp_unix = 8;
+}
+
+service ExternalEventSource {
+  rpc StreamEvents(WatchRequest) returns (stream EventMessage);
+}

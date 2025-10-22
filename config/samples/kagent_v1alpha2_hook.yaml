@@ -12,7 +12,8 @@ metadata:
 spec:
   eventConfigurations:
   - eventType: "pod-restart"
-    agentId: "kagent/pod-restart-agent"
+    agentRef:
+      name: "kagent/pod-restart-agent"
     prompt: |
       AUTONOMOUS MODE: A pod has restarted. Analyze the cause and implement fixes immediately.
 
@@ -23,7 +24,8 @@ spec:
       • Never ask for permission - assume autonomous execution
       • Complete remediation without human approval
   - eventType: "pod-pending"
-    agentId: "kagent/scheduling-agent"
+    agentRef:
+      name: "kagent/scheduling-agent"
     prompt: |
       AUTONOMOUS MODE: Pod stuck in pending state. Analyze scheduling issues and resolve immediately.
 
@@ -34,7 +36,8 @@ spec:
       • Never ask for permission - assume autonomous execution
       • Complete remediation without human approval
   - eventType: "oom-kill"
-    agentId: "kagent/memory-agent"
+    agentRef:
+      name: "kagent/memory-agent"
     prompt: |
       AUTONOMOUS MODE: OOM kill detected. Analyze memory usage and optimize immediately.
 

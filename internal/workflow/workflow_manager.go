@@ -100,8 +100,23 @@ func (wm *WorkflowManager) runNamespaceWorkflow(
 
 	wm.logger.Info("Namespace workflow started", "namespace", namespace)
 
-	watcher := event.NewWatcher(wm.k8sClient, namespace)
-	processor := pipeline.NewProcessor(watcher, wm.dedupManager, wm.kagentClient, wm.statusManager)
+	// Build sources: built-in Kubernetes and any referenced external sources
+	sources := []interfaces.EventSource{event.NewKubernetesSource(wm.k8sClient, namespace)}
+	// Derive external source names from hooks
+	extNames := wm.externalSourcesForHooks(hooks)
+	for name := range extNames {
+		// Fetch ExternalEventSource in this namespace
+		var src kagentv1alpha2.ExternalEventSource
+		if err := wm.ctrlClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &src); err != nil {
+			wm.logger.Error(err, "Failed to get ExternalEventSource", "name", name, "namespace", namespace)
+			continue
+		}
+		// Use the generic gRPC client for all external event sources
+		dialer := &event.GRPCClient{}
+		sources = append(sources, event.NewExternalGRPCEventSource(name, namespace, src.Spec, dialer))
+	}
+	mux := event.NewMultiplexer(sources)
+	processor := pipeline.NewProcessor(mux, wm.dedupManager, wm.kagentClient, wm.statusManager)
 
 	if err := processor.ProcessEventWorkflow(ctx, eventTypes, hooks); err != nil {
 		wm.logger.Error(err, "Namespace workflow exited with error", "namespace", namespace)
@@ -121,6 +136,19 @@ func (wm *WorkflowManager) uniqueEventTypes(hooks []*kagentv1alpha2.Hook) []stri
 	out := make([]string, 0, len(set))
 	for t := range set {
 		out = append(out, t)
+	}
+	return out
+}
+
+// externalSourcesForHooks extracts referenced ExternalEventSource names from grouped source entries
+func (wm *WorkflowManager) externalSourcesForHooks(hooks []*kagentv1alpha2.Hook) map[string]struct{} {
+	out := map[string]struct{}{}
+	for _, h := range hooks {
+		for _, ec := range h.Spec.EventConfigurations {
+			if ec.Source != nil && strings.TrimSpace(ec.Source.Name) != "" {
+				out[ec.Source.Name] = struct{}{}
+			}
+		}
 	}
 	return out
 }

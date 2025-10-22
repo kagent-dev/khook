@@ -1,0 +1,13 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: redis-external-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - source:
+      name: redis-events
+      events:
+      - eventType: name-change
+        agentRef: { name: k8s-agent, namespace: kagent }
+        prompt: "This name was changed. What can be done?"

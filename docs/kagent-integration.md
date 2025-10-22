@@ -317,3 +317,46 @@ For integration issues:
 2. **Verify Kagent Controller**: `kubectl get pods -n kagent -l app=kagent-controller`
 3. **Test Connectivity**: Use the health check commands above
 4. **GitHub Issues**: [https://github.com/kagent-dev/khook/issues](https://github.com/kagent-dev/khook/issues)
+
+## External Event Sources (gRPC)
+
+Khook integrates with external event providers over gRPC via the `ExternalEventSource` CRD. Define an ExternalEventSource and reference it from Hooks using the grouped `source.events[]` form.
+
+```yaml
+a piVersion: kagent.dev/v1alpha2
+kind: ExternalEventSource
+metadata:
+  name: my-external-source
+  namespace: default
+spec:
+  endpoint:
+    address: externalevents.default.svc:8080
+    tls:
+      enabled: true
+      secretRef:
+        name: my-tls
+        caKey: ca.crt
+        certKey: tls.crt
+        keyKey: tls.key
+  auth:
+    type: BearerToken
+    secretRef: { name: external-auth, key: token }
+  connection:
+    namespaceScope: true
+    reconnectBackoff:
+      initialSeconds: 2
+      maxSeconds: 60
+```
+
+Reference it in a Hook:
+
+```yaml
+spec:
+  eventConfigurations:
+  - source:
+      name: my-external-source
+      events:
+      - eventType: pod-restart
+        agentRef: { name: kagent }
+        prompt: "External restart on {{.ResourceName}}"
+```

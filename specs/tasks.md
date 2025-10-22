@@ -298,8 +298,7 @@
   - Add predictive scaling based on event patterns
   - Write performance tests for analytics workloads
   - _Requirements: Analytics, Performance monitoring_
-## De
-vOps and CI/CD Tasks
+## DevOps and CI/CD Tasks
 
 - [x] 37. Initialize Git repository and version control
   - Initialize Git repository with proper .gitignore for Go projects
@@ -323,6 +322,68 @@ vOps and CI/CD Tasks
   - Add code coverage reporting and security vulnerability scanning
   - Create release workflow for tagged versions with multi-platform binaries
   - _Requirements: Automated testing, Continuous deployment_
+
+---
+
+## Feature: Multi-Source Event Ingestion (Built-in + External gRPC)
+
+### Objectives
+- Allow Hooks to define events as either:
+  - Single built-in Kubernetes events (top-level `eventType`, `agentRef`, `prompt`), or
+  - Grouped events under a `source` (`name`, `namespace`, `events[]` with `eventType`, `agentRef`, `prompt`).
+- Add `ExternalEventSource` CRD for gRPC-based providers with TLS/auth.
+- Maintain existing pipeline; introduce `EventSource` interface + `EventMultiplexer`.
+
+### Scope
+- API/CRD updates (Hook schema, new ExternalEventSource CRD, validation).
+- Core interfaces and wiring (`EventSource`, multiplexer, K8s watcher adaptation).
+- External gRPC source client (streaming, TLS, auth, reconnects, metrics).
+- Workflow assembly per-namespace from Hooks and ExternalEventSources.
+- Tests, docs, Helm and CRD manifests.
+
+### Deliverables
+1) Updated `api/v1alpha2` types and validating webhooks (Hook union, ExternalEventSource).
+2) Generated CRDs and Helm chart updates.
+3) `EventSource` interface, `EventMultiplexer`, adapted K8s watcher as built-in source.
+4) External gRPC client with proto, TLS/mTLS (single Secret), retries, metrics.
+5) `workflow` changes to build sources and derive provider hints from declared events.
+6) Unit/integration tests and examples.
+
+### Implementation Steps
+1) API and Validation
+   - Extend `Hook.EventConfiguration` with union: single built-in event OR `source.events[]`.
+   - Add `ExternalEventSource` type: endpoint, TLS secretRef (caKey/certKey/keyKey), auth.
+   - Implement validation:
+     - Exactly one of single-event or grouped `source.events` per item.
+     - All `eventType` values must be supported.
+     - Optional: warn if referenced ExternalEventSource missing (best-effort at webhook).
+   - Regenerate deepcopy, CRDs; update `config/crd` and `helm/khook-crds`.
+
+2) Interfaces and Core Wiring
+   - Create `internal/interfaces/eventsources.go` with `EventSource`.
+   - Implement `internal/event/multiplexer.go` to fan-in multiple sources and implement `EventWatcher`.
+   - Adapt `internal/event/watcher.go` to an `EventSource` (built-in K8s events).
+
+3) External gRPC Event Source
+   - Define proto `externalevents.v1` and generate Go client.
+   - Implement `ExternalGRPCEventSource`: TLS/mTLS from single Secret, auth, backoff.
+   - Add metrics and structured logs; derive `hints` from declared events.
+
+4) Workflow Integration
+   - Update `workflow_manager` to:
+     - Parse Hooks: collect top-level events and grouped `source.events`.
+     - Resolve required `ExternalEventSource` objects per namespace.
+     - Construct sources + multiplexer; pass to pipeline unchanged.
+
+5) Tests and Docs
+   - Unit tests: schema validation, multiplexer fan-in, K8s source adapter.
+   - Integration: external source reconnects, status conditions, per-namespace wiring.
+   - Update `docs/` with CRD reference, examples, troubleshooting.
+
+### Rollout Plan
+- Ship as minor version; backward compatible for existing Hooks.
+- Provide migration examples for external sources.
+- Add feature gate/env flag to disable external sources if needed.
 
 - [ ] 40. Set up automated dependency management
   - Configure Dependabot for Go modules, GitHub Actions, and Docker updates

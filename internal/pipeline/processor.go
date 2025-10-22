@@ -94,12 +94,31 @@ func (p *Processor) findEventMatches(event interfaces.Event, hooks []*v1alpha2.H
 
 	for _, hook := range hooks {
 		for _, config := range hook.Spec.EventConfigurations {
+			// Single-event form
 			if config.EventType == event.Type {
 				matches = append(matches, EventMatch{
 					Hook:          hook,
 					Configuration: config,
 					Event:         event,
 				})
+				continue
+			}
+			// Grouped source form
+			if config.Source != nil {
+				for _, se := range config.Source.Events {
+					if se.EventType == event.Type {
+						cfg := v1alpha2.EventConfiguration{
+							EventType: se.EventType,
+							AgentRef:  se.AgentRef,
+							Prompt:    se.Prompt,
+						}
+						matches = append(matches, EventMatch{
+							Hook:          hook,
+							Configuration: cfg,
+							Event:         event,
+						})
+					}
+				}
 			}
 		}
 	}
