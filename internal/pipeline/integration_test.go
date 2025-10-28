@@ -408,14 +408,38 @@ func TestPromptTemplateExpansion(t *testing.T) {
 			},
 			expected: "Static message without placeholders",
 		},
-		{
-			name:     "Template with unknown placeholders",
-			template: "Known: {{.EventType}}, Unknown: {{.UnknownField}}",
-			event: interfaces.Event{
-				Type: "pod-restart",
-			},
-			expected: "Known: pod-restart, Unknown: {{.UnknownField}}",
+	{
+		name:     "Template with unknown placeholders",
+		template: "Known: {{.EventType}}, Unknown: {{.UnknownField}}",
+		event: interfaces.Event{
+			Type: "pod-restart",
 		},
+		expected: "Known: pod-restart, Unknown: <no value>",
+	},
+	{
+		name:     "Template with metadata access",
+		template: "Issue: {{.Metadata.issue}}, Project: {{.Metadata.project}}",
+		event: interfaces.Event{
+			Type: "resolve-issue",
+			Metadata: map[string]interface{}{
+				"issue":   "ECS-11",
+				"project": "KhookProject",
+			},
+		},
+		expected: "Issue: ECS-11, Project: KhookProject",
+	},
+	{
+		name:     "Template with nested metadata",
+		template: "Order {{.Metadata.orderId}} total: ${{.Metadata.amount}}",
+		event: interfaces.Event{
+			Type: "order-placed",
+			Metadata: map[string]interface{}{
+				"orderId": "ORD-123",
+				"amount":  99.99,
+			},
+		},
+		expected: "Order ORD-123 total: $99.99",
+	},
 	}
 
 	for _, tc := range testCases {

@@ -251,19 +251,11 @@ func (p *Processor) expandPromptTemplate(templateStr string, event interfaces.Ev
 	}
 
 	// First, try to expand known placeholders using the original manual method
-	// This ensures backward compatibility for unknown placeholders
+	// This ensures simple placeholders are handled quickly
 	result := p.expandKnownPlaceholders(templateStr, event)
 
-	// Check if there are still unexpanded template placeholders
-	// If so, skip text/template processing to maintain backward compatibility
-	if strings.Contains(result, "{{") && strings.Contains(result, "}}") {
-		p.logger.V(2).Info("Template contains unknown placeholders, skipping advanced processing",
-			"template", result)
-		return result
-	}
-
-	// Then try to use text/template for more advanced templating
-	// This allows for complex template expressions while maintaining backward compatibility
+	// Always try text/template expansion for advanced features like metadata access
+	// The text/template engine will handle both simple and complex templates
 	result = p.expandWithTextTemplate(result, event)
 
 	return result
