@@ -119,7 +119,12 @@ func (wm *WorkflowManager) runNamespaceWorkflow(
 	processor := pipeline.NewProcessor(mux, wm.dedupManager, wm.kagentClient, wm.statusManager)
 
 	if err := processor.ProcessEventWorkflow(ctx, eventTypes, hooks); err != nil {
-		wm.logger.Error(err, "Namespace workflow exited with error", "namespace", namespace)
+		// Context cancellation is expected when hooks are updated/workflow is restarted
+		if err == context.Canceled {
+			wm.logger.Info("Namespace workflow stopped (context canceled)", "namespace", namespace)
+		} else {
+			wm.logger.Error(err, "Namespace workflow exited with error", "namespace", namespace)
+		}
 	} else {
 		wm.logger.Info("Namespace workflow finished", "namespace", namespace)
 	}

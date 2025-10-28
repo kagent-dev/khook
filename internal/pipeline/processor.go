@@ -213,14 +213,14 @@ func (p *Processor) createAgentRequest(match EventMatch, agentRef types.Namespac
 		"hookName":      match.Hook.Name,
 		"hookNamespace": match.Hook.Namespace,
 	}
-	
+
 	// Include all metadata fields at the top level for easy agent access
 	if match.Event.Metadata != nil {
 		for k, v := range match.Event.Metadata {
 			context[k] = v
 		}
 	}
-	
+
 	// Also include the metadata map itself for structured access
 	context["metadata"] = match.Event.Metadata
 
@@ -339,12 +339,12 @@ func (p *Processor) expandWithTextTemplate(templateStr string, event interfaces.
 		"Timestamp":    event.Timestamp.Format(time.RFC3339),
 		"EventTime":    event.Timestamp.Format(time.RFC3339),
 		"EventMessage": event.Message,
-		
+
 		// Direct access to event fields
-		"Type":      event.Type,
-		"UID":       event.UID,
-		"Metadata":  event.Metadata, // Full metadata map for custom fields
-		
+		"Type":     event.Type,
+		"UID":      event.UID,
+		"Metadata": event.Metadata, // Full metadata map for custom fields
+
 		// Full event access for advanced templating
 		"Event": event,
 	}
