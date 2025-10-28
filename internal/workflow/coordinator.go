@@ -117,11 +117,17 @@ func (c *Coordinator) manageNamespaceWorkflow(
 
 	if state, exists := c.namespaceStates[namespace]; exists {
 		if state.Signature == signature {
-			c.logger.V(1).Info("No changes in hooks; keeping workflow running", "namespace", namespace)
+			c.logger.V(1).Info("No changes in hooks; keeping workflow running", 
+				"namespace", namespace,
+				"currentSignature", signature,
+				"previousSignature", state.Signature)
 			return
 		}
 
-		c.logger.Info("Restarting namespace workflow due to hook changes", "namespace", namespace)
+		c.logger.Info("Restarting namespace workflow due to hook changes", 
+			"namespace", namespace,
+			"oldSignature", state.Signature,
+			"newSignature", signature)
 		c.workflowManager.StopNamespaceWorkflow(namespace, state)
 		delete(c.namespaceStates, namespace)
 	}
@@ -134,7 +140,7 @@ func (c *Coordinator) manageNamespaceWorkflow(
 	}
 
 	c.namespaceStates[namespace] = state
-	c.logger.Info("Started namespace workflow", "namespace", namespace, "hookCount", len(hooks))
+	c.logger.Info("Started namespace workflow", "namespace", namespace, "hookCount", len(hooks), "signature", signature)
 }
 
 // cleanupOrphanedWorkflows stops workflows for namespaces that no longer have hooks

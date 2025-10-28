@@ -52,23 +52,54 @@ func (m *Manager) UpdateHookStatus(ctx context.Context, hook *v1alpha2.Hook, act
 		}
 	}
 
-	// Update the hook status
-	hook.Status.ActiveEvents = statusEvents
-	hook.Status.LastUpdated = metav1.NewTime(time.Now())
+	// Retry loop to handle resource version conflicts
+	maxRetries := 3
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Fetch the latest version of the hook to get the current resource version
+		latestHook := &v1alpha2.Hook{}
+		key := client.ObjectKey{Name: hook.Name, Namespace: hook.Namespace}
+		if err := m.client.Get(ctx, key, latestHook); err != nil {
+			m.logger.Error(err, "Failed to get latest hook version",
+				"hook", hook.Name,
+				"namespace", hook.Namespace,
+				"attempt", attempt+1)
+			return fmt.Errorf("failed to get latest hook version: %w", err)
+		}
 
-	if err := m.client.Status().Update(ctx, hook); err != nil {
-		m.logger.Error(err, "Failed to update hook status",
+		// Update the status on the latest version
+		latestHook.Status.ActiveEvents = statusEvents
+		latestHook.Status.LastUpdated = metav1.NewTime(time.Now())
+
+		// Attempt to update the status
+		if err := m.client.Status().Update(ctx, latestHook); err != nil {
+			// Check if this is a conflict error
+			if client.IgnoreNotFound(err) != nil && attempt < maxRetries-1 {
+				m.logger.V(1).Info("Hook status update conflict, retrying",
+					"hook", hook.Name,
+					"namespace", hook.Namespace,
+					"attempt", attempt+1,
+					"error", err.Error())
+				// Brief backoff before retry
+				time.Sleep(time.Millisecond * 100 * time.Duration(attempt+1))
+				continue
+			}
+			m.logger.Error(err, "Failed to update hook status",
+				"hook", hook.Name,
+				"namespace", hook.Namespace,
+				"attempt", attempt+1)
+			return fmt.Errorf("failed to update hook status after %d attempts: %w", attempt+1, err)
+		}
+
+		// Success
+		m.logger.Info("Successfully updated hook status",
 			"hook", hook.Name,
-			"namespace", hook.Namespace)
-		return fmt.Errorf("failed to update hook status: %w", err)
+			"namespace", hook.Namespace,
+			"lastUpdated", latestHook.Status.LastUpdated.Time,
+			"attempt", attempt+1)
+		return nil
 	}
 
-	m.logger.Info("Successfully updated hook status",
-		"hook", hook.Name,
-		"namespace", hook.Namespace,
-		"lastUpdated", hook.Status.LastUpdated.Time)
-
-	return nil
+	return fmt.Errorf("failed to update hook status after %d attempts", maxRetries)
 }
 
 // RecordEventFiring records that an event has started firing

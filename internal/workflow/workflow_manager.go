@@ -159,7 +159,18 @@ func (wm *WorkflowManager) CalculateSignature(hooks []*kagentv1alpha2.Hook) stri
 	for _, h := range hooks {
 		cfgs := make([]string, 0, len(h.Spec.EventConfigurations))
 		for _, ec := range h.Spec.EventConfigurations {
-			cfgs = append(cfgs, ec.EventType+"|"+ec.AgentRef.Name+"|"+ec.Prompt)
+			// Handle single-event form
+			if ec.EventType != "" {
+				agentName := ec.AgentRef.Name
+				cfgs = append(cfgs, ec.EventType+"|"+agentName+"|"+ec.Prompt)
+			}
+			// Handle grouped source form
+			if ec.Source != nil {
+				for _, se := range ec.Source.Events {
+					agentName := se.AgentRef.Name
+					cfgs = append(cfgs, ec.Source.Name+":"+se.EventType+"|"+agentName+"|"+se.Prompt)
+				}
+			}
 		}
 		parts = append(parts, h.Namespace+"/"+h.Name+"@"+strings.Join(cfgs, ";"))
 	}

@@ -1,0 +1,1 @@
+PUBLISH "khook:events" '{"type":"create-issue","project":"Khook","message":"First issue from the cluster"}'
