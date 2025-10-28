@@ -112,10 +112,45 @@ func (s *server) StreamEvents(req *pb.WatchRequest, stream pb.ExternalEventSourc
 				return fmt.Errorf("redis channel closed")
 			}
 
-			var em redisEventMessage
-			if err := json.Unmarshal([]byte(msg.Payload), &em); err != nil {
+			// First unmarshal to generic map to capture all fields
+			var raw map[string]interface{}
+			if err := json.Unmarshal([]byte(msg.Payload), &raw); err != nil {
 				log.Printf("Failed to unmarshal event: %v, payload: %s", err, msg.Payload)
 				continue
+			}
+
+			// Then unmarshal to structured type
+			var em redisEventMessage
+			if err := json.Unmarshal([]byte(msg.Payload), &em); err != nil {
+				log.Printf("Failed to unmarshal event to struct: %v", err)
+				continue
+			}
+
+			// Auto-populate metadata with unknown fields
+			// Known fields that shouldn't go into metadata
+			knownFields := map[string]bool{
+				"type": true, "resource_name": true, "namespace": true,
+				"reason": true, "message": true, "uid": true,
+				"metadata": true, "timestamp_unix": true,
+			}
+
+			// Initialize metadata if nil
+			if em.Metadata == nil {
+				em.Metadata = make(map[string]string)
+			}
+
+			// Move unknown fields to metadata
+			for key, value := range raw {
+				if !knownFields[key] {
+					// Convert value to string
+					if strVal, ok := value.(string); ok {
+						em.Metadata[key] = strVal
+					} else if value != nil {
+						// Convert other types to JSON string
+						jsonBytes, _ := json.Marshal(value)
+						em.Metadata[key] = string(jsonBytes)
+					}
+				}
 			}
 
 			// Map to protobuf EventMessage
@@ -135,7 +170,7 @@ func (s *server) StreamEvents(req *pb.WatchRequest, stream pb.ExternalEventSourc
 				TimestampUnix: ts,
 			}
 
-			log.Printf("Streaming event: type=%s, resource=%s, namespace=%s", event.Type, event.ResourceName, event.Namespace)
+			log.Printf("Streaming event: type=%s, resource=%s, namespace=%s, metadata=%+v", event.Type, event.ResourceName, event.Namespace, event.Metadata)
 			if err := stream.Send(event); err != nil {
 				log.Printf("Failed to send event: %v", err)
 				return err

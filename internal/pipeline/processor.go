@@ -203,6 +203,12 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 func (p *Processor) createAgentRequest(match EventMatch, agentRef types.NamespacedName) interfaces.AgentRequest {
 	// Expand prompt template with event context
 	prompt := p.expandPromptTemplate(match.Configuration.Prompt, match.Event)
+	
+	p.logger.V(1).Info("Expanded prompt template",
+		"eventType", match.Event.Type,
+		"originalPrompt", match.Configuration.Prompt,
+		"expandedPrompt", prompt,
+		"metadata", match.Event.Metadata)
 
 	// Build context with all event data and metadata
 	context := map[string]interface{}{
