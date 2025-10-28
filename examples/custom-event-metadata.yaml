@@ -1,0 +1,271 @@
+# Custom Event Metadata Example
+# This example demonstrates how to use metadata from custom event sources
+# in your hook prompts. The metadata can contain any fields specific to your
+# event source (e.g., order IDs, transaction amounts, sensor readings, etc.)
+
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: ecommerce-order-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - source:
+      name: order-events  # References an ExternalEventSource
+      events:
+      # New order placed
+      - eventType: "order-placed"
+        agentRef:
+          name: order-processing-agent
+          namespace: kagent
+        prompt: |
+          NEW ORDER RECEIVED
+          
+          Order Details:
+          - Order ID: {{.Metadata.orderId}}
+          - Customer ID: {{.Metadata.customerId}}
+          - Customer Email: {{.Metadata.customerEmail}}
+          - Total Amount: ${{.Metadata.orderTotal}}
+          - Item Count: {{.Metadata.itemCount}}
+          - Payment Method: {{.Metadata.paymentMethod}}
+          
+          {{if .Metadata.couponCode}}
+          - Coupon Applied: {{.Metadata.couponCode}} ({{.Metadata.discountAmount}} off)
+          {{end}}
+          
+          Shipping:
+          - Address: {{.Metadata.shippingAddress}}
+          - Method: {{.Metadata.shippingMethod}}
+          - Estimated Delivery: {{.Metadata.estimatedDelivery}}
+          
+          {{if .Metadata.giftMessage}}
+          Gift Message: {{.Metadata.giftMessage}}
+          {{end}}
+          
+          Please process this order and update inventory.
+      
+      # High-value order (requires approval)
+      - eventType: "high-value-order"
+        agentRef:
+          name: approval-agent
+          namespace: kagent
+        prompt: |
+          HIGH-VALUE ORDER ALERT
+          
+          This order exceeds the automatic approval threshold.
+          
+          Order: {{.Metadata.orderId}}
+          Customer: {{.Metadata.customerName}} ({{.Metadata.customerEmail}})
+          Total: ${{.Metadata.orderTotal}}
+          Threshold: ${{.Metadata.approvalThreshold}}
+          
+          Customer History:
+          - Account Age: {{.Metadata.customerAccountAgeDays}} days
+          - Previous Orders: {{.Metadata.previousOrderCount}}
+          - Total Lifetime Value: ${{.Metadata.lifetimeValue}}
+          - Risk Score: {{.Metadata.riskScore}}
+          
+          {{if .Metadata.fraudFlags}}
+          FRAUD FLAGS DETECTED:
+          {{range .Metadata.fraudFlags}}
+          - {{.}}
+          {{end}}
+          {{end}}
+          
+          Please review and approve or reject this order.
+      
+      # Payment failed
+      - eventType: "payment-failed"
+        agentRef:
+          name: payment-recovery-agent
+          namespace: kagent
+        prompt: |
+          PAYMENT FAILURE
+          
+          Order: {{.Metadata.orderId}}
+          Customer: {{.Metadata.customerEmail}}
+          Amount: ${{.Metadata.orderTotal}}
+          
+          Failure Details:
+          - Error Code: {{.Metadata.errorCode}}
+          - Error Message: {{.Metadata.errorMessage}}
+          - Payment Method: {{.Metadata.paymentMethod}}
+          - Attempt Number: {{.Metadata.attemptNumber}}
+          
+          {{if .Metadata.bankResponse}}
+          Bank Response: {{.Metadata.bankResponse}}
+          {{end}}
+          
+          Please contact the customer and attempt payment recovery.
+
+---
+# Example: IoT Sensor Monitoring Hook
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: iot-sensor-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - source:
+      name: iot-sensors
+      events:
+      - eventType: "sensor-alert"
+        agentRef:
+          name: facility-agent
+          namespace: kagent
+        prompt: |
+          SENSOR ALERT: {{.Metadata.alertType}}
+          
+          Sensor Information:
+          - Sensor ID: {{.Metadata.sensorId}}
+          - Location: {{.Metadata.location}}
+          - Facility: {{.Metadata.facility}}
+          - Zone: {{.Metadata.zone}}
+          
+          Readings:
+          - Current Value: {{.Metadata.currentValue}} {{.Metadata.unit}}
+          - Normal Range: {{.Metadata.minThreshold}} - {{.Metadata.maxThreshold}} {{.Metadata.unit}}
+          - Deviation: {{.Metadata.deviationPercent}}%
+          - Duration: {{.Metadata.alertDurationMinutes}} minutes
+          
+          {{if .Metadata.correlatedSensors}}
+          Correlated Sensors Also Affected:
+          {{range .Metadata.correlatedSensors}}
+          - {{.}}
+          {{end}}
+          {{end}}
+          
+          {{if .Metadata.systemStatus}}
+          Related System Status: {{.Metadata.systemStatus}}
+          {{end}}
+          
+          Please investigate and take appropriate action.
+
+---
+# Example: Financial Transaction Monitoring
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: transaction-monitor
+  namespace: default
+spec:
+  eventConfigurations:
+  - source:
+      name: transaction-stream
+      events:
+      - eventType: "suspicious-transaction"
+        agentRef:
+          name: fraud-detection-agent
+          namespace: kagent
+        prompt: |
+          SUSPICIOUS TRANSACTION DETECTED
+          
+          Transaction: {{.Metadata.transactionId}}
+          Timestamp: {{.Timestamp}}
+          
+          Transaction Details:
+          - Amount: {{.Metadata.amount}} {{.Metadata.currency}}
+          - Merchant: {{.Metadata.merchantName}} ({{.Metadata.merchantCategory}})
+          - Location: {{.Metadata.city}}, {{.Metadata.country}}
+          - Card: ****{{.Metadata.cardLast4}}
+          
+          Risk Analysis:
+          - Risk Score: {{.Metadata.riskScore}}/100
+          - Model Version: {{.Metadata.modelVersion}}
+          
+          Risk Factors:
+          {{range .Metadata.riskFactors}}
+          - {{.}}
+          {{end}}
+          
+          Customer Profile:
+          - Customer ID: {{.Metadata.customerId}}
+          - Average Transaction: {{.Metadata.avgTransaction}} {{.Metadata.currency}}
+          - Transactions Today: {{.Metadata.transactionsToday}}
+          - Distance from Last Transaction: {{.Metadata.distanceFromLastKm}} km
+          - Time Since Last Transaction: {{.Metadata.timeSinceLastMinutes}} minutes
+          
+          {{if .Metadata.blockedReason}}
+          AUTOMATICALLY BLOCKED: {{.Metadata.blockedReason}}
+          {{end}}
+          
+          Please review this transaction and take appropriate action.
+
+---
+# Example: CI/CD Pipeline Events
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: cicd-pipeline-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - source:
+      name: pipeline-events
+      events:
+      - eventType: "build-failed"
+        agentRef:
+          name: devops-agent
+          namespace: kagent
+        prompt: |
+          BUILD FAILURE
+          
+          Pipeline: {{.Metadata.pipelineName}}
+          Repository: {{.Metadata.repository}}
+          Branch: {{.Metadata.branch}}
+          Commit: {{.Metadata.commitHash}}
+          Author: {{.Metadata.commitAuthor}}
+          
+          Build Details:
+          - Build ID: {{.Metadata.buildId}}
+          - Stage: {{.Metadata.failedStage}}
+          - Duration: {{.Metadata.durationSeconds}} seconds
+          
+          Error:
+          {{.Metadata.errorMessage}}
+          
+          {{if .Metadata.failedTests}}
+          Failed Tests:
+          {{range .Metadata.failedTests}}
+          - {{.}}
+          {{end}}
+          {{end}}
+          
+          {{if .Metadata.previousBuildStatus}}
+          Previous Build: {{.Metadata.previousBuildStatus}}
+          {{end}}
+          
+          Logs: {{.Metadata.logsUrl}}
+          
+          Please diagnose the issue and create a fix or notify the team.
+      
+      - eventType: "deployment-successful"
+        agentRef:
+          name: devops-agent
+          namespace: kagent
+        prompt: |
+          DEPLOYMENT SUCCESSFUL
+          
+          Application: {{.Metadata.applicationName}}
+          Environment: {{.Metadata.environment}}
+          Version: {{.Metadata.version}}
+          
+          Deployment Details:
+          - Deployment ID: {{.Metadata.deploymentId}}
+          - Strategy: {{.Metadata.deploymentStrategy}}
+          - Duration: {{.Metadata.durationSeconds}} seconds
+          - Instances: {{.Metadata.instanceCount}}
+          
+          Health Checks:
+          - Status: {{.Metadata.healthCheckStatus}}
+          - Response Time: {{.Metadata.avgResponseTimeMs}} ms
+          - Error Rate: {{.Metadata.errorRatePercent}}%
+          
+          {{if .Metadata.releaseNotes}}
+          Release Notes: {{.Metadata.releaseNotes}}
+          {{end}}
+          
+          Please monitor the deployment and verify all services are healthy.
+

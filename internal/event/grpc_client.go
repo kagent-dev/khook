@@ -79,6 +79,12 @@ func (c *GRPCClient) Stream(ctx context.Context, address string, tlsConfig *tls.
 			ts = time.Unix(event.TimestampUnix, 0)
 		}
 
+		// Convert metadata from map[string]string to map[string]interface{}
+		metadata := make(map[string]interface{})
+		for k, v := range event.Metadata {
+			metadata[k] = v
+		}
+
 		onEvent(interfaces.Event{
 			Type:         event.Type,
 			ResourceName: event.ResourceName,
@@ -86,7 +92,7 @@ func (c *GRPCClient) Stream(ctx context.Context, address string, tlsConfig *tls.
 			Reason:       event.Reason,
 			Message:      event.Message,
 			UID:          event.Uid,
-			Metadata:     event.Metadata,
+			Metadata:     metadata,
 			Timestamp:    ts,
 		})
 	}

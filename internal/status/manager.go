@@ -104,17 +104,27 @@ func (m *Manager) UpdateHookStatus(ctx context.Context, hook *v1alpha2.Hook, act
 
 // RecordEventFiring records that an event has started firing
 func (m *Manager) RecordEventFiring(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, agentRef types.NamespacedName) error {
-	m.logger.Info("Recording event firing",
+	logValues := []interface{}{
 		"hook", hook.Name,
 		"namespace", hook.Namespace,
 		"eventType", event.Type,
-		"resourceName", event.ResourceName,
-		"agentRef", agentRef)
+		"agentRef", agentRef,
+	}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resourceName", event.ResourceName)
+	}
+	if event.UID != "" {
+		logValues = append(logValues, "uid", event.UID)
+	}
+	m.logger.Info("Recording event firing", logValues...)
 
 	// Emit Kubernetes event for audit trail
-	m.recorder.Event(hook, corev1.EventTypeNormal, "EventFiring",
-		fmt.Sprintf("Event %s fired for resource %s, calling agent %s",
-			event.Type, event.ResourceName, agentRef.Name))
+	eventMsg := fmt.Sprintf("Event %s fired, calling agent %s", event.Type, agentRef.Name)
+	if event.ResourceName != "" {
+		eventMsg = fmt.Sprintf("Event %s fired for resource %s, calling agent %s",
+			event.Type, event.ResourceName, agentRef.Name)
+	}
+	m.recorder.Event(hook, corev1.EventTypeNormal, "EventFiring", eventMsg)
 
 	return nil
 }
@@ -137,69 +147,100 @@ func (m *Manager) RecordEventResolved(ctx context.Context, hook *v1alpha2.Hook, 
 
 // RecordError records an error that occurred during event processing
 func (m *Manager) RecordError(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, err error, agentRef types.NamespacedName) error {
-	m.logger.Error(err, "Recording event processing error",
+	logValues := []interface{}{
 		"hook", hook.Name,
 		"namespace", hook.Namespace,
 		"eventType", event.Type,
-		"resourceName", event.ResourceName,
-		"agentRef", agentRef)
+		"agentRef", agentRef,
+	}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resourceName", event.ResourceName)
+	}
+	m.logger.Error(err, "Recording event processing error", logValues...)
 
 	// Emit Kubernetes event for error tracking
-	m.recorder.Event(hook, corev1.EventTypeWarning, "EventProcessingError",
-		fmt.Sprintf("Failed to process event %s for resource %s with agent %s: %v",
-			event.Type, event.ResourceName, agentRef.Name, err))
+	eventMsg := fmt.Sprintf("Failed to process event %s with agent %s: %v",
+		event.Type, agentRef.Name, err)
+	if event.ResourceName != "" {
+		eventMsg = fmt.Sprintf("Failed to process event %s for resource %s with agent %s: %v",
+			event.Type, event.ResourceName, agentRef.Name, err)
+	}
+	m.recorder.Event(hook, corev1.EventTypeWarning, "EventProcessingError", eventMsg)
 
 	return nil
 }
 
 // RecordAgentCallSuccess records a successful agent call
 func (m *Manager) RecordAgentCallSuccess(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, agentRef types.NamespacedName, requestId string) error {
-	m.logger.Info("Recording successful agent call",
+	logValues := []interface{}{
 		"hook", hook.Name,
 		"namespace", hook.Namespace,
 		"eventType", event.Type,
-		"resourceName", event.ResourceName,
 		"agentRef", agentRef,
-		"requestId", requestId)
+		"requestId", requestId,
+	}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resourceName", event.ResourceName)
+	}
+	m.logger.Info("Recording successful agent call", logValues...)
 
 	// Emit Kubernetes event for successful processing
-	m.recorder.Event(hook, corev1.EventTypeNormal, "AgentCallSuccess",
-		fmt.Sprintf("Successfully called agent %s for event %s on resource %s (request: %s)",
-			agentRef.Name, event.Type, event.ResourceName, requestId))
+	eventMsg := fmt.Sprintf("Successfully called agent %s for event %s (request: %s)",
+		agentRef.Name, event.Type, requestId)
+	if event.ResourceName != "" {
+		eventMsg = fmt.Sprintf("Successfully called agent %s for event %s on resource %s (request: %s)",
+			agentRef.Name, event.Type, event.ResourceName, requestId)
+	}
+	m.recorder.Event(hook, corev1.EventTypeNormal, "AgentCallSuccess", eventMsg)
 
 	return nil
 }
 
 // RecordAgentCallFailure records a failed agent call
 func (m *Manager) RecordAgentCallFailure(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event, agentRef types.NamespacedName, err error) error {
-	m.logger.Error(err, "Recording failed agent call",
+	logValues := []interface{}{
 		"hook", hook.Name,
 		"namespace", hook.Namespace,
 		"eventType", event.Type,
-		"resourceName", event.ResourceName,
-		"agentRef", agentRef)
+		"agentRef", agentRef,
+	}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resourceName", event.ResourceName)
+	}
+	m.logger.Error(err, "Recording failed agent call", logValues...)
 
 	// Emit Kubernetes event for failed processing
-	m.recorder.Event(hook, corev1.EventTypeWarning, "AgentCallFailure",
-		fmt.Sprintf("Failed to call agent %s for event %s on resource %s: %v",
-			agentRef.Name, event.Type, event.ResourceName, err))
+	eventMsg := fmt.Sprintf("Failed to call agent %s for event %s: %v",
+		agentRef.Name, event.Type, err)
+	if event.ResourceName != "" {
+		eventMsg = fmt.Sprintf("Failed to call agent %s for event %s on resource %s: %v",
+			agentRef.Name, event.Type, event.ResourceName, err)
+	}
+	m.recorder.Event(hook, corev1.EventTypeWarning, "AgentCallFailure", eventMsg)
 
 	return nil
 }
 
 // RecordDuplicateEvent records that a duplicate event was ignored
 func (m *Manager) RecordDuplicateEvent(ctx context.Context, hook *v1alpha2.Hook, event interfaces.Event) error {
-	m.logger.Info("Recording duplicate event ignored",
+	logValues := []interface{}{
 		"hook", hook.Name,
 		"namespace", hook.Namespace,
 		"eventType", event.Type,
-		"resourceName", event.ResourceName,
-		"eventTimestamp", event.Timestamp)
+		"eventTimestamp", event.Timestamp,
+	}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resourceName", event.ResourceName)
+	}
+	m.logger.Info("Recording duplicate event ignored", logValues...)
 
 	// Emit Kubernetes event for duplicate tracking (using Normal type to avoid noise)
-	m.recorder.Event(hook, corev1.EventTypeNormal, "DuplicateEventIgnored",
-		fmt.Sprintf("Duplicate event %s ignored for resource %s (within deduplication window)",
-			event.Type, event.ResourceName))
+	eventMsg := fmt.Sprintf("Duplicate event %s ignored (within deduplication window)", event.Type)
+	if event.ResourceName != "" {
+		eventMsg = fmt.Sprintf("Duplicate event %s ignored for resource %s (within deduplication window)",
+			event.Type, event.ResourceName)
+	}
+	m.recorder.Event(hook, corev1.EventTypeNormal, "DuplicateEventIgnored", eventMsg)
 
 	return nil
 }

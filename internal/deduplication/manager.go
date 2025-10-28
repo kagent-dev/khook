@@ -38,14 +38,46 @@ func NewManager() *Manager {
 	}
 }
 
-// eventKey generates a unique key for an event based on type and resource
+// eventKey generates a unique key for an event
+// Priority:
+// 1. If UID is present, use Type:UID (best for unique identification)
+// 2. Otherwise use Type:Namespace:ResourceName (for Kubernetes events)
+// 3. If no ResourceName, use Type:Namespace (for namespace-scoped events)
+// 4. If no Namespace, use just Type (for global events)
 func (m *Manager) eventKey(event interfaces.Event) string {
-	return fmt.Sprintf("%s:%s:%s", event.Type, event.Namespace, event.ResourceName)
+	// Prefer UID if available for unique identification
+	if event.UID != "" {
+		return fmt.Sprintf("%s:%s", event.Type, event.UID)
+	}
+
+	// Fall back to composite key for Kubernetes-style events
+	if event.ResourceName != "" {
+		if event.Namespace != "" {
+			return fmt.Sprintf("%s:%s:%s", event.Type, event.Namespace, event.ResourceName)
+		}
+		return fmt.Sprintf("%s:%s", event.Type, event.ResourceName)
+	}
+
+	// Namespace-scoped event without resource
+	if event.Namespace != "" {
+		return fmt.Sprintf("%s:%s", event.Type, event.Namespace)
+	}
+
+	// Global event - just use type
+	// Note: This means all events of same type will be deduplicated together
+	return event.Type
 }
 
 // ShouldProcessEvent determines if an event should be processed based on deduplication logic
 func (m *Manager) ShouldProcessEvent(hookRef types.NamespacedName, event interfaces.Event) bool {
-	logger := log.Log.WithName("dedup").WithValues("hook", hookRef.String(), "eventType", event.Type, "resource", event.ResourceName)
+	logValues := []interface{}{"hook", hookRef.String(), "eventType", event.Type}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resource", event.ResourceName)
+	}
+	if event.UID != "" {
+		logValues = append(logValues, "uid", event.UID)
+	}
+	logger := log.Log.WithName("dedup").WithValues(logValues...)
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
@@ -85,7 +117,14 @@ func (m *Manager) ShouldProcessEvent(hookRef types.NamespacedName, event interfa
 
 // RecordEvent records an event in the deduplication storage
 func (m *Manager) RecordEvent(hookRef types.NamespacedName, event interfaces.Event) error {
-	logger := log.Log.WithName("dedup").WithValues("hook", hookRef.String(), "eventType", event.Type, "resource", event.ResourceName)
+	logValues := []interface{}{"hook", hookRef.String(), "eventType", event.Type}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resource", event.ResourceName)
+	}
+	if event.UID != "" {
+		logValues = append(logValues, "uid", event.UID)
+	}
+	logger := log.Log.WithName("dedup").WithValues(logValues...)
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

@@ -242,7 +242,7 @@ func (w *Watcher) mapKubernetesEvent(k8sEvent *eventsv1.Event) *interfaces.Event
 		Reason:       k8sEvent.Reason,
 		Message:      k8sEvent.Note,
 		UID:          string(k8sEvent.UID),
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"kind":                k8sEvent.Regarding.Kind,
 			"apiVersion":          k8sEvent.Regarding.APIVersion,
 			"count":               count,

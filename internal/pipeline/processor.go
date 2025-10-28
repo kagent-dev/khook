@@ -204,21 +204,33 @@ func (p *Processor) createAgentRequest(match EventMatch, agentRef types.Namespac
 	// Expand prompt template with event context
 	prompt := p.expandPromptTemplate(match.Configuration.Prompt, match.Event)
 
+	// Build context with all event data and metadata
+	context := map[string]interface{}{
+		"namespace":     match.Event.Namespace,
+		"reason":        match.Event.Reason,
+		"message":       match.Event.Message,
+		"uid":           match.Event.UID,
+		"hookName":      match.Hook.Name,
+		"hookNamespace": match.Hook.Namespace,
+	}
+	
+	// Include all metadata fields at the top level for easy agent access
+	if match.Event.Metadata != nil {
+		for k, v := range match.Event.Metadata {
+			context[k] = v
+		}
+	}
+	
+	// Also include the metadata map itself for structured access
+	context["metadata"] = match.Event.Metadata
+
 	return interfaces.AgentRequest{
 		AgentRef:     agentRef,
 		Prompt:       prompt,
 		EventName:    match.Event.Type,
 		EventTime:    match.Event.Timestamp,
 		ResourceName: match.Event.ResourceName,
-		Context: map[string]interface{}{
-			"namespace":     match.Event.Namespace,
-			"reason":        match.Event.Reason,
-			"message":       match.Event.Message,
-			"uid":           match.Event.UID,
-			"metadata":      match.Event.Metadata,
-			"hookName":      match.Hook.Name,
-			"hookNamespace": match.Hook.Namespace,
-		},
+		Context:      context,
 	}
 }
 
@@ -316,7 +328,9 @@ func (p *Processor) expandKnownPlaceholders(template string, event interfaces.Ev
 // expandWithTextTemplate attempts to use text/template for advanced features
 func (p *Processor) expandWithTextTemplate(templateStr string, event interfaces.Event) string {
 	// Create template data for advanced templating
+	// Make all event fields available at the top level for easy access
 	templateData := map[string]interface{}{
+		// Legacy/convenience fields (backward compatible)
 		"EventType":    event.Type,
 		"ResourceName": event.ResourceName,
 		"Namespace":    event.Namespace,
@@ -325,7 +339,14 @@ func (p *Processor) expandWithTextTemplate(templateStr string, event interfaces.
 		"Timestamp":    event.Timestamp.Format(time.RFC3339),
 		"EventTime":    event.Timestamp.Format(time.RFC3339),
 		"EventMessage": event.Message,
-		"Event":        event, // Full event access for advanced templating
+		
+		// Direct access to event fields
+		"Type":      event.Type,
+		"UID":       event.UID,
+		"Metadata":  event.Metadata, // Full metadata map for custom fields
+		
+		// Full event access for advanced templating
+		"Event": event,
 	}
 
 	// Try to parse and execute the template

@@ -141,7 +141,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 			Reason:       "BackOff",
 			Message:      "Container failed to start",
 			UID:          "test-uid-1",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"kind": "Pod",
 			},
 		}
@@ -183,7 +183,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 	t.Run("ProcessDuplicateEvent", func(t *testing.T) {
 		mockKagentClient.ClearCalls()
 
-		// Same event as before - should be deduplicated
+		// Same event as before - should be deduplicated (same UID)
 		event := interfaces.Event{
 			Type:         "pod-restart",
 			ResourceName: "test-pod-1",
@@ -191,7 +191,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 			Timestamp:    time.Now(),
 			Reason:       "BackOff",
 			Message:      "Container failed to start again",
-			UID:          "test-uid-1-duplicate",
+			UID:          "test-uid-1", // Same UID as original event for deduplication
 		}
 
 		err := processor.ProcessEvent(ctx, event, hooks)
@@ -214,7 +214,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 			Reason:       "OOMKilling",
 			Message:      "Memory limit exceeded",
 			UID:          "test-uid-2",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"kind": "Pod",
 			},
 		}

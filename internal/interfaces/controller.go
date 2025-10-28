@@ -17,16 +17,16 @@ type ControllerManager interface {
 	RemoveHookWatch(hookRef types.NamespacedName) error
 }
 
-// Event represents a Kubernetes event with relevant metadata
+// Event represents an event from any source with relevant metadata
 type Event struct {
-	Type         string            `json:"type"`
-	ResourceName string            `json:"resourceName"`
-	Timestamp    time.Time         `json:"timestamp"`
-	Namespace    string            `json:"namespace"`
-	Reason       string            `json:"reason"`
-	Message      string            `json:"message"`
-	UID          string            `json:"uid"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
+	Type         string                 `json:"type"`
+	ResourceName string                 `json:"resourceName"` // Optional: may be empty for non-resource events
+	Timestamp    time.Time              `json:"timestamp"`
+	Namespace    string                 `json:"namespace"` // Optional: may be empty for non-Kubernetes events
+	Reason       string                 `json:"reason"`    // Optional: may be empty
+	Message      string                 `json:"message"`
+	UID          string                 `json:"uid"`                // Optional: may be empty
+	Metadata     map[string]interface{} `json:"metadata,omitempty"` // Flexible metadata for any event source
 }
 
 // EventMatch represents a matched event with its corresponding hook configuration
@@ -69,7 +69,7 @@ type KagentClient interface {
 // ActiveEvent represents an event that is currently being tracked
 type ActiveEvent struct {
 	EventType      string     `json:"eventType"`
-	ResourceName   string     `json:"resourceName"`
+	ResourceName   string     `json:"resourceName"` // Optional: may be empty for non-resource events
 	FirstSeen      time.Time  `json:"firstSeen"`
 	LastSeen       time.Time  `json:"lastSeen"`
 	Status         string     `json:"status"`
