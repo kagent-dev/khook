@@ -49,6 +49,14 @@ func (p *Processor) ProcessEvent(ctx context.Context, event interfaces.Event, ho
 		"namespace", event.Namespace,
 		"hookCount", len(hooks))
 
+	// Validate event has required fields
+	if event.Type == "" {
+		p.logger.V(1).Info("Ignoring event with empty type",
+			"metadata", event.Metadata,
+			"message", event.Message)
+		return nil
+	}
+
 	// Find matching hooks and configurations for this event
 	matches := p.findEventMatches(event, hooks)
 	if len(matches) == 0 {
@@ -133,6 +141,23 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 		Name:      match.Hook.Name,
 	}
 
+	// Validate agent reference
+	if match.Configuration.AgentRef.Name == "" {
+		p.logger.Error(fmt.Errorf("invalid configuration"), "Agent reference name is empty",
+			"hook", hookRef,
+			"eventType", match.Event.Type)
+		return fmt.Errorf("agent reference name is empty for hook %s", hookRef)
+	}
+
+	// Validate prompt is not empty
+	if match.Configuration.Prompt == "" {
+		p.logger.Error(fmt.Errorf("invalid configuration"), "Prompt is empty",
+			"hook", hookRef,
+			"eventType", match.Event.Type,
+			"agentRef", match.Configuration.AgentRef.Name)
+		return fmt.Errorf("prompt is empty for hook %s, event %s", hookRef, match.Event.Type)
+	}
+
 	// Check deduplication - should we process this event?
 	if !p.deduplicationManager.ShouldProcessEvent(hookRef, match.Event) {
 		p.logger.V(1).Info("Event ignored due to deduplication",
@@ -203,7 +228,7 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 func (p *Processor) createAgentRequest(match EventMatch, agentRef types.NamespacedName) interfaces.AgentRequest {
 	// Expand prompt template with event context
 	prompt := p.expandPromptTemplate(match.Configuration.Prompt, match.Event)
-	
+
 	p.logger.V(1).Info("Expanded prompt template",
 		"eventType", match.Event.Type,
 		"originalPrompt", match.Configuration.Prompt,
