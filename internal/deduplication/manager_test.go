@@ -18,19 +18,127 @@ func TestNewManager(t *testing.T) {
 	assert.Equal(t, 0, len(manager.hookEvents))
 }
 
+func TestHashEventContent(t *testing.T) {
+	manager := NewManager()
+
+	tests := []struct {
+		name        string
+		event1      interfaces.Event
+		event2      interfaces.Event
+		shouldMatch bool
+	}{
+		{
+			name: "identical events should have same hash",
+			event1: interfaces.Event{
+				Type:    "order-placed",
+				Message: "New order",
+				Metadata: map[string]interface{}{
+					"orderId": "123",
+					"amount":  99.99,
+				},
+			},
+			event2: interfaces.Event{
+				Type:    "order-placed",
+				Message: "New order",
+				Metadata: map[string]interface{}{
+					"orderId": "123",
+					"amount":  99.99,
+				},
+			},
+			shouldMatch: true,
+		},
+		{
+			name: "different metadata values should have different hash",
+			event1: interfaces.Event{
+				Type:    "order-placed",
+				Message: "New order",
+				Metadata: map[string]interface{}{
+					"orderId": "123",
+				},
+			},
+			event2: interfaces.Event{
+				Type:    "order-placed",
+				Message: "New order",
+				Metadata: map[string]interface{}{
+					"orderId": "124",
+				},
+			},
+			shouldMatch: false,
+		},
+		{
+			name: "metadata key order shouldn't matter",
+			event1: interfaces.Event{
+				Type: "test",
+				Metadata: map[string]interface{}{
+					"a": "value1",
+					"b": "value2",
+				},
+			},
+			event2: interfaces.Event{
+				Type: "test",
+				Metadata: map[string]interface{}{
+					"b": "value2",
+					"a": "value1",
+				},
+			},
+			shouldMatch: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash1 := manager.hashEventContent(tt.event1)
+			hash2 := manager.hashEventContent(tt.event2)
+
+			if tt.shouldMatch {
+				assert.Equal(t, hash1, hash2, "Hashes should match")
+			} else {
+				assert.NotEqual(t, hash1, hash2, "Hashes should differ")
+			}
+		})
+	}
+}
+
 func TestEventKey(t *testing.T) {
 	manager := NewManager()
 
-	event := interfaces.Event{
-		Type:         "pod-restart",
-		ResourceName: "test-pod",
-		Namespace:    "default",
-		Timestamp:    time.Now(),
+	tests := []struct {
+		name     string
+		event    interfaces.Event
+		expected string
+	}{
+		{
+			name: "event with UID uses UID",
+			event: interfaces.Event{
+				Type: "pod-restart",
+				UID:  "unique-id-123",
+			},
+			expected: "pod-restart:unique-id-123",
+		},
+		{
+			name: "event without UID uses content hash",
+			event: interfaces.Event{
+				Type:         "pod-restart",
+				ResourceName: "test-pod",
+				Namespace:    "default",
+			},
+			// Hash will be generated, just verify format
+			expected: "", // Will check format instead
+		},
 	}
 
-	key := manager.eventKey(event)
-	expected := "pod-restart:default:test-pod"
-	assert.Equal(t, expected, key)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key := manager.eventKey(tt.event)
+			if tt.expected != "" {
+				assert.Equal(t, tt.expected, key)
+			} else {
+				// Verify hash format: type:hash
+				assert.Contains(t, key, tt.event.Type+":")
+				assert.Len(t, key, len(tt.event.Type)+1+16) // type + : + 16-char hash
+			}
+		})
+	}
 }
 
 func TestShouldProcessEvent_NewEvent(t *testing.T) {

@@ -1,7 +1,10 @@
 package deduplication
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -38,34 +41,66 @@ func NewManager() *Manager {
 	}
 }
 
-// eventKey generates a unique key for an event
+// eventKey generates a unique key for an event using content-based hashing
 // Priority:
-// 1. If UID is present, use Type:UID (best for unique identification)
-// 2. Otherwise use Type:Namespace:ResourceName (for Kubernetes events)
-// 3. If no ResourceName, use Type:Namespace (for namespace-scoped events)
-// 4. If no Namespace, use just Type (for global events)
+// 1. If UID is present, use Type:UID (explicit unique identification)
+// 2. Otherwise use Type:Hash where Hash is a SHA256 of event content
+//
+// The hash includes: Type, ResourceName, Namespace, Reason, Message, and Metadata
+// This ensures events with the same semantic content are deduplicated,
+// regardless of the event source (Kubernetes, Redis, IoT, etc.)
 func (m *Manager) eventKey(event interfaces.Event) string {
-	// Prefer UID if available for unique identification
+	// Prefer UID if available for explicit unique identification
 	if event.UID != "" {
 		return fmt.Sprintf("%s:%s", event.Type, event.UID)
 	}
+	
+	// Generate content-based hash for semantic deduplication
+	hash := m.hashEventContent(event)
+	return fmt.Sprintf("%s:%s", event.Type, hash)
+}
 
-	// Fall back to composite key for Kubernetes-style events
-	if event.ResourceName != "" {
-		if event.Namespace != "" {
-			return fmt.Sprintf("%s:%s:%s", event.Type, event.Namespace, event.ResourceName)
+// hashEventContent creates a stable hash of event content for deduplication
+func (m *Manager) hashEventContent(event interfaces.Event) string {
+	// Create a stable representation of the event
+	// We hash: Type + ResourceName + Namespace + Reason + Message + Metadata
+	h := sha256.New()
+	
+	// Add string fields
+	h.Write([]byte(event.Type))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.ResourceName))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.Namespace))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.Reason))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.Message))
+	h.Write([]byte("|"))
+	
+	// Add metadata in a stable way (sorted keys for deterministic hash)
+	if event.Metadata != nil {
+		// Sort keys for stable hash
+		keys := make([]string, 0, len(event.Metadata))
+		for k := range event.Metadata {
+			keys = append(keys, k)
 		}
-		return fmt.Sprintf("%s:%s", event.Type, event.ResourceName)
+		sort.Strings(keys)
+		
+		// Add each key-value pair to hash
+		for _, k := range keys {
+			h.Write([]byte(k))
+			h.Write([]byte("="))
+			// Convert value to JSON for stable representation
+			if jsonBytes, err := json.Marshal(event.Metadata[k]); err == nil {
+				h.Write(jsonBytes)
+			}
+			h.Write([]byte(";"))
+		}
 	}
-
-	// Namespace-scoped event without resource
-	if event.Namespace != "" {
-		return fmt.Sprintf("%s:%s", event.Type, event.Namespace)
-	}
-
-	// Global event - just use type
-	// Note: This means all events of same type will be deduplicated together
-	return event.Type
+	
+	// Return first 16 characters of hex hash (sufficient for uniqueness)
+	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
 // ShouldProcessEvent determines if an event should be processed based on deduplication logic
