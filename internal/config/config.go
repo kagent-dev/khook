@@ -47,6 +47,9 @@ type ControllerConfig struct {
 
 	// MaxConcurrentReconciles is the maximum number of concurrent reconciles
 	MaxConcurrentReconciles int `yaml:"maxConcurrentReconciles"`
+
+	// APIServerPort is the port for the HTTP API server (default: 8082)
+	APIServerPort string `yaml:"apiServerPort"`
 }
 
 // LoggingConfig holds logging configuration
@@ -70,6 +73,7 @@ func DefaultConfig() *Config {
 			EventDeduplicationTimeout: 10 * time.Minute,
 			EventCleanupInterval:      5 * time.Minute,
 			MaxConcurrentReconciles:   1,
+			APIServerPort:             "8082",
 		},
 		Logging: LoggingConfig{
 			Level:  "info",
@@ -125,6 +129,9 @@ func Load(configFile string) (*Config, error) {
 	}
 	if apiKey := os.Getenv("KAGENT_API_KEY"); apiKey != "" {
 		config.Kagent.APIKey = apiKey
+	}
+	if apiPort := os.Getenv("API_SERVER_PORT"); apiPort != "" {
+		config.Controller.APIServerPort = apiPort
 	}
 
 	// Load from file if specified

@@ -17,6 +17,10 @@ import (
 	kagentv1alpha2 "github.com/kagent-dev/khook/api/v1alpha2"
 	kclient "github.com/kagent-dev/khook/internal/client"
 	"github.com/kagent-dev/khook/internal/config"
+	"github.com/kagent-dev/khook/internal/deduplication"
+	"github.com/kagent-dev/khook/internal/status"
+	apiserver "github.com/kagent-dev/khook/internal/apiserver"
+	"github.com/kagent-dev/khook/internal/interfaces"
 	"github.com/kagent-dev/khook/internal/workflow"
 )
 
@@ -49,7 +53,7 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// Load configuration
-	_, err := config.Load(configFile)
+	cfg, err := config.Load(configFile)
 	if err != nil {
 		setupLog.Error(err, "unable to load configuration")
 		os.Exit(1)
@@ -76,14 +80,35 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize shared services for workflow and API server
+	dedupManager := deduplication.NewManager()
+	statusManager := status.NewManager(mgr.GetClient(), mgr.GetEventRecorderFor("khook"))
+
 	// Add workflow coordinator to manage hooks and event processing
-	if err := mgr.Add(newWorkflowCoordinator(mgr)); err != nil {
+	if err := mgr.Add(newWorkflowCoordinator(mgr, dedupManager, statusManager)); err != nil {
 		setupLog.Error(err, "unable to add workflow coordinator")
 		os.Exit(1)
 	}
 
+	// Create and start API server
+	apiServer := apiserver.NewServer(apiserver.Config{
+		Port:          cfg.Controller.APIServerPort,
+		DedupManager:  dedupManager,
+		K8sClient:     mgr.GetClient(),
+		StatusManager: statusManager,
+	})
+
+	ctx := ctrl.SetupSignalHandler()
+	
+	// Start API server in a goroutine
+	go func() {
+		if err := apiServer.Start(ctx); err != nil {
+			setupLog.Error(err, "problem running API server")
+		}
+	}()
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
@@ -91,11 +116,17 @@ func main() {
 
 // workflowCoordinator manages the complete workflow lifecycle using proper services
 type workflowCoordinator struct {
-	mgr ctrl.Manager
+	mgr           ctrl.Manager
+	dedupManager  interfaces.DeduplicationManager
+	statusManager interfaces.StatusManager
 }
 
-func newWorkflowCoordinator(mgr ctrl.Manager) *workflowCoordinator {
-	return &workflowCoordinator{mgr: mgr}
+func newWorkflowCoordinator(mgr ctrl.Manager, dedupManager interfaces.DeduplicationManager, statusManager interfaces.StatusManager) *workflowCoordinator {
+	return &workflowCoordinator{
+		mgr:           mgr,
+		dedupManager:  dedupManager,
+		statusManager: statusManager,
+	}
 }
 
 func (w *workflowCoordinator) NeedLeaderElection() bool { return true }
@@ -119,9 +150,9 @@ func (w *workflowCoordinator) Start(ctx context.Context) error {
 		return err
 	}
 
-	// Create workflow coordinator
+	// Create workflow coordinator with shared managers
 	eventRecorder := w.mgr.GetEventRecorderFor("khook")
-	coordinator := workflow.NewCoordinator(k8s, w.mgr.GetClient(), kagentCli, eventRecorder)
+	coordinator := workflow.NewCoordinatorWithManagers(k8s, w.mgr.GetClient(), kagentCli, eventRecorder, w.dedupManager, w.statusManager)
 
 	// Start the coordinator
 	return coordinator.Start(ctx)

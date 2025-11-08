@@ -85,6 +85,8 @@ type DeduplicationManager interface {
 	GetActiveEvents(hookRef types.NamespacedName) []ActiveEvent
 	GetActiveEventsWithStatus(hookRef types.NamespacedName) []ActiveEvent
 	MarkNotified(hookRef types.NamespacedName, event Event)
+	GetAllHookNames() []string
+	GetEventCount() int
 }
 
 // EventRecorder handles Kubernetes event recording

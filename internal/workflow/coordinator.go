@@ -34,7 +34,18 @@ func NewCoordinator(
 ) *Coordinator {
 	dedupManager := deduplication.NewManager()
 	statusManager := status.NewManager(ctrlClient, eventRecorder)
+	return NewCoordinatorWithManagers(k8sClient, ctrlClient, kagentClient, eventRecorder, dedupManager, statusManager)
+}
 
+// NewCoordinatorWithManagers creates a new workflow coordinator with shared managers
+func NewCoordinatorWithManagers(
+	k8sClient kubernetes.Interface,
+	ctrlClient client.Client,
+	kagentClient interfaces.KagentClient,
+	eventRecorder interfaces.EventRecorder,
+	dedupManager interfaces.DeduplicationManager,
+	statusManager interfaces.StatusManager,
+) *Coordinator {
 	hookDiscovery := NewHookDiscoveryService(ctrlClient)
 	workflowManager := NewWorkflowManager(
 		k8sClient,
