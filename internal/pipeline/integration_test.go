@@ -408,12 +408,12 @@ func TestPromptTemplateExpansion(t *testing.T) {
 			},
 			expected: "Static message without placeholders",
 		},
-	{
-		name:     "Template with unknown placeholders",
-		template: "Known: {{.EventType}}, Unknown: {{.UnknownField}}",
-		event: interfaces.Event{
-			Type: "pod-restart",
-		},
+		{
+			name:     "Template with unknown placeholders",
+			template: "Known: {{.EventType}}, Unknown: {{.UnknownField}}",
+			event: interfaces.Event{
+				Type: "pod-restart",
+			},
 		expected: "Known: pod-restart, Unknown: <no value>",
 	},
 	{
@@ -439,7 +439,7 @@ func TestPromptTemplateExpansion(t *testing.T) {
 			},
 		},
 		expected: "Order ORD-123 total: $99.99",
-	},
+		},
 	}
 
 	for _, tc := range testCases {

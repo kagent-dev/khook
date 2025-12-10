@@ -83,20 +83,20 @@ func (m *Manager) UpdateHookStatus(ctx context.Context, hook *v1alpha2.Hook, act
 				time.Sleep(time.Millisecond * 100 * time.Duration(attempt+1))
 				continue
 			}
-			m.logger.Error(err, "Failed to update hook status",
-				"hook", hook.Name,
+		m.logger.Error(err, "Failed to update hook status",
+			"hook", hook.Name,
 				"namespace", hook.Namespace,
 				"attempt", attempt+1)
 			return fmt.Errorf("failed to update hook status after %d attempts: %w", attempt+1, err)
-		}
+	}
 
 		// Success
-		m.logger.Info("Successfully updated hook status",
-			"hook", hook.Name,
-			"namespace", hook.Namespace,
+	m.logger.Info("Successfully updated hook status",
+		"hook", hook.Name,
+		"namespace", hook.Namespace,
 			"lastUpdated", latestHook.Status.LastUpdated.Time,
 			"attempt", attempt+1)
-		return nil
+	return nil
 	}
 
 	return fmt.Errorf("failed to update hook status after %d attempts", maxRetries)

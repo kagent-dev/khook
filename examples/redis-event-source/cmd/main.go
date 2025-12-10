@@ -142,13 +142,20 @@ func (s *server) StreamEvents(req *pb.WatchRequest, stream pb.ExternalEventSourc
 			// Move unknown fields to metadata
 			for key, value := range raw {
 				if !knownFields[key] {
+					// Strip common prefixes like "Metadata." or "metadata."
+					// This handles cases where users send {"Metadata.field": "value"}
+					cleanKey := key
+					if strings.HasPrefix(strings.ToLower(key), "metadata.") {
+						cleanKey = key[9:] // Remove "Metadata." or "metadata." prefix
+					}
+
 					// Convert value to string
 					if strVal, ok := value.(string); ok {
-						em.Metadata[key] = strVal
+						em.Metadata[cleanKey] = strVal
 					} else if value != nil {
 						// Convert other types to JSON string
 						jsonBytes, _ := json.Marshal(value)
-						em.Metadata[key] = string(jsonBytes)
+						em.Metadata[cleanKey] = string(jsonBytes)
 					}
 				}
 			}

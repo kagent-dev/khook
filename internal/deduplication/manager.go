@@ -54,7 +54,7 @@ func (m *Manager) eventKey(event interfaces.Event) string {
 	if event.UID != "" {
 		return fmt.Sprintf("%s:%s", event.Type, event.UID)
 	}
-	
+
 	// Generate content-based hash for semantic deduplication
 	hash := m.hashEventContent(event)
 	return fmt.Sprintf("%s:%s", event.Type, hash)
@@ -65,7 +65,7 @@ func (m *Manager) hashEventContent(event interfaces.Event) string {
 	// Create a stable representation of the event
 	// We hash: Type + ResourceName + Namespace + Reason + Message + Metadata
 	h := sha256.New()
-	
+
 	// Add string fields
 	h.Write([]byte(event.Type))
 	h.Write([]byte("|"))
@@ -77,7 +77,7 @@ func (m *Manager) hashEventContent(event interfaces.Event) string {
 	h.Write([]byte("|"))
 	h.Write([]byte(event.Message))
 	h.Write([]byte("|"))
-	
+
 	// Add metadata in a stable way (sorted keys for deterministic hash)
 	if event.Metadata != nil {
 		// Sort keys for stable hash
@@ -86,7 +86,7 @@ func (m *Manager) hashEventContent(event interfaces.Event) string {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		
+
 		// Add each key-value pair to hash
 		for _, k := range keys {
 			h.Write([]byte(k))
@@ -98,7 +98,7 @@ func (m *Manager) hashEventContent(event interfaces.Event) string {
 			h.Write([]byte(";"))
 		}
 	}
-	
+
 	// Return first 16 characters of hex hash (sufficient for uniqueness)
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
