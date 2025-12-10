@@ -3,7 +3,6 @@ package workflow
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -159,8 +158,7 @@ func (wm *WorkflowManager) externalSourcesForHooks(hooks []*kagentv1alpha2.Hook)
 	return out
 }
 
-// CalculateSignature creates a signature for hook changes detection.
-// The signature is deterministic regardless of the order hooks are returned from the API.
+// CalculateSignature creates a signature for hook changes detection
 func (wm *WorkflowManager) CalculateSignature(hooks []*kagentv1alpha2.Hook) string {
 	parts := make([]string, 0, len(hooks))
 	for _, h := range hooks {
@@ -179,11 +177,7 @@ func (wm *WorkflowManager) CalculateSignature(hooks []*kagentv1alpha2.Hook) stri
 				}
 			}
 		}
-		// Sort configurations within each hook for deterministic ordering
-		sort.Strings(cfgs)
 		parts = append(parts, h.Namespace+"/"+h.Name+"@"+strings.Join(cfgs, ";"))
 	}
-	// Sort hook parts to ensure deterministic ordering regardless of API return order
-	sort.Strings(parts)
 	return strings.Join(parts, ",")
 }
