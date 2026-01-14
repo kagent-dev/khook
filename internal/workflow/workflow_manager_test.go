@@ -185,4 +185,3 @@ func TestCalculateSignatureChangesOnPromptUpdate(t *testing.T) {
 	// Signatures should be different
 	assert.NotEqual(t, sig1, sig2, "Signature should change when prompt is updated")
 }
-

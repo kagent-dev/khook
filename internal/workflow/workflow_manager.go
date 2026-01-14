@@ -123,7 +123,7 @@ func (wm *WorkflowManager) runNamespaceWorkflow(
 		if err == context.Canceled {
 			wm.logger.Info("Namespace workflow stopped (context canceled)", "namespace", namespace)
 		} else {
-		wm.logger.Error(err, "Namespace workflow exited with error", "namespace", namespace)
+			wm.logger.Error(err, "Namespace workflow exited with error", "namespace", namespace)
 		}
 	} else {
 		wm.logger.Info("Namespace workflow finished", "namespace", namespace)

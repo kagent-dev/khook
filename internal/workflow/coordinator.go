@@ -117,14 +117,14 @@ func (c *Coordinator) manageNamespaceWorkflow(
 
 	if state, exists := c.namespaceStates[namespace]; exists {
 		if state.Signature == signature {
-			c.logger.V(1).Info("No changes in hooks; keeping workflow running", 
+			c.logger.V(1).Info("No changes in hooks; keeping workflow running",
 				"namespace", namespace,
 				"currentSignature", signature,
 				"previousSignature", state.Signature)
 			return
 		}
 
-		c.logger.Info("Restarting namespace workflow due to hook changes", 
+		c.logger.Info("Restarting namespace workflow due to hook changes",
 			"namespace", namespace,
 			"oldSignature", state.Signature,
 			"newSignature", signature)
