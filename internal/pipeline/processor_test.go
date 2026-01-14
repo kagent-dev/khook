@@ -167,7 +167,7 @@ func createTestEvent(eventType, resourceName, namespace string) interfaces.Event
 		Reason:       "TestReason",
 		Message:      "Test message",
 		UID:          "test-uid",
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"kind": "Pod",
 		},
 	}

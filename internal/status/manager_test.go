@@ -450,3 +450,69 @@ func TestLogControllerShutdown(t *testing.T) {
 	// This should not panic or error
 	manager.LogControllerShutdown(ctx, "graceful shutdown")
 }
+
+func TestUpdateHookStatusWithRetry(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1alpha2.AddToScheme(scheme))
+
+	hook := &v1alpha2.Hook{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-hook",
+			Namespace: "default",
+		},
+		Spec: v1alpha2.HookSpec{
+			EventConfigurations: []v1alpha2.EventConfiguration{
+				{
+					EventType: "pod-restart",
+					AgentRef:  v1alpha2.ObjectReference{Name: "test-agent"},
+					Prompt:    "test prompt",
+				},
+			},
+		},
+	}
+
+	activeEvents := []interfaces.ActiveEvent{
+		{
+			EventType:    "pod-restart",
+			ResourceName: "test-pod",
+			FirstSeen:    time.Now().Add(-5 * time.Minute),
+			LastSeen:     time.Now(),
+			Status:       "firing",
+		},
+	}
+
+	// Create fake client with the hook and status subresource
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(hook).
+		WithStatusSubresource(&v1alpha2.Hook{}).
+		Build()
+	fakeRecorder := record.NewFakeRecorder(100)
+	manager := NewManager(fakeClient, fakeRecorder)
+
+	ctx := context.Background()
+
+	// First, modify the hook's spec to simulate an external update
+	// This will change the resource version
+	updatedHook := hook.DeepCopy()
+	updatedHook.Spec.EventConfigurations[0].Prompt = "updated prompt"
+	require.NoError(t, fakeClient.Update(ctx, updatedHook))
+
+	// Now try to update status with the old hook object
+	// The retry mechanism should fetch the latest version and succeed
+	err := manager.UpdateHookStatus(ctx, hook, activeEvents)
+	assert.NoError(t, err)
+
+	// Verify the status was updated
+	latestHook := &v1alpha2.Hook{}
+	key := client.ObjectKey{Name: hook.Name, Namespace: hook.Namespace}
+	require.NoError(t, fakeClient.Get(ctx, key, latestHook))
+
+	assert.Len(t, latestHook.Status.ActiveEvents, 1)
+	assert.Equal(t, "pod-restart", latestHook.Status.ActiveEvents[0].EventType)
+	assert.Equal(t, "test-pod", latestHook.Status.ActiveEvents[0].ResourceName)
+	assert.False(t, latestHook.Status.LastUpdated.IsZero())
+
+	// Verify the spec change was preserved
+	assert.Equal(t, "updated prompt", latestHook.Spec.EventConfigurations[0].Prompt)
+}

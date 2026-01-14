@@ -6,7 +6,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Hook
 metadata:
   name: basic-pod-monitoring
-  namespace: kagent
+  namespace: default
   labels:
     environment: development
     monitoring-type: basic
@@ -15,6 +15,7 @@ spec:
   # Monitor pod restarts
   - eventType: pod-restart
     agentRef:
+      namespace: kagent
       name: k8s-agent
     prompt: |
       AUTONOMOUS MODE: Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
@@ -30,6 +31,7 @@ spec:
   # Monitor OOM kills
   - eventType: oom-kill
     agentRef:
+      namespace: kagent
       name: k8s-agent
     prompt: |
       AUTONOMOUS MODE: OOM kill for {{.ResourceName}} at {{.EventTime}}. Analyze memory and optimize immediately.

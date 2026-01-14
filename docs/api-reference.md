@@ -20,11 +20,31 @@ The Hook CRD defines the schema for configuring event monitoring and Kagent inte
 
 #### EventConfiguration
 
+EventConfiguration supports two forms:
+
+1) Single built-in event (Kubernetes events watcher):
+
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `eventType` | `string` | Yes | Type of Kubernetes event to monitor |
-| `agentId` | `string` | Yes | Kagent agent identifier |
+| `eventType` | `string` | Yes | Type of event to monitor |
+| `agentRef` | `ObjectReference` | Yes | Agent to call on event |
 | `prompt` | `string` | Yes | Prompt template for the agent |
+
+2) Grouped external source events:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `source.name` | `string` | Yes | ExternalEventSource name |
+| `source.namespace` | `string` | No | Namespace (defaults to Hook namespace) |
+| `source.events[]` | `[]SourceEvent` | Yes | List of event entries |
+
+`SourceEvent` fields:
+
+| Field | Type | Required |
+|-------|------|----------|
+| `eventType` | `string` | Yes |
+| `agentRef` | `ObjectReference` | Yes |
+| `prompt` | `string` | Yes |
 
 ##### Supported Event Types
 
@@ -51,8 +71,7 @@ The Hook CRD defines the schema for configuring event monitoring and Kagent inte
 | `firstSeen` | `metav1.Time` | When event was first observed |
 | `lastSeen` | `metav1.Time` | When event was last observed |
 | `status` | `string` | Event status: `firing` or `resolved` |
-### Exa
-mple Hook Resource
+### Example Hook Resource
 
 ```yaml
 apiVersion: kagent.dev/v1alpha2
@@ -63,27 +82,16 @@ metadata:
 spec:
   eventConfigurations:
   - eventType: pod-restart
-    agentId: kagent/incident-responder
+    agentRef: { name: kagent/incident-responder }
     prompt: |
-      AUTONOMOUS MODE: Pod {{.ResourceName}} restarted at {{.EventTime}}. Analyze and fix immediately.
-
-      INSTRUCTIONS:
-      • Use all available tools to diagnose and resolve the issue
-      • Annotate fixed resources with: kagentFix=<timestamp>
-      • If patching fails: delete and recreate resources
-      • Never ask for permission - assume autonomous execution
-      • Complete remediation without human approval
-  - eventType: oom-kill
-    agentId: kagent/memory-analyzer
-    prompt: |
-      AUTONOMOUS MODE: OOM kill for {{.ResourceName}}. Analyze memory and optimize immediately.
-
-      INSTRUCTIONS:
-      • Use all available tools to diagnose and resolve memory issues
-      • Annotate fixed resources with: kagentFix=<timestamp>
-      • If patching fails: delete and recreate resources
-      • Never ask for permission - assume autonomous execution
-      • Complete remediation without human approval
+      Pod {{.ResourceName}} restarted at {{.EventTime}}.
+  - source:
+      name: my-external-source
+      events:
+      - eventType: probe-failed
+        agentRef: { name: kagent/health-checker }
+        prompt: |
+          Probe failed on {{.ResourceName}}.
 status:
   activeEvents:
   - eventType: pod-restart

@@ -1,0 +1,31 @@
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "1"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
+
+runtimeClassName: ""
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Enable GPU support for macOS (Metal Performance Shaders)
+env:
+  - name: OLLAMA_HOST
+    value: "0.0.0.0:11434"
+  - name: OLLAMA_ORIGINS
+    value: "*"
+
+service:
+  type: ClusterIP
+  port: 11434
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""

@@ -1,7 +1,10 @@
 package deduplication
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -38,14 +41,78 @@ func NewManager() *Manager {
 	}
 }
 
-// eventKey generates a unique key for an event based on type and resource
+// eventKey generates a unique key for an event using content-based hashing
+// Priority:
+// 1. If UID is present, use Type:UID (explicit unique identification)
+// 2. Otherwise use Type:Hash where Hash is a SHA256 of event content
+//
+// The hash includes: Type, ResourceName, Namespace, Reason, Message, and Metadata
+// This ensures events with the same semantic content are deduplicated,
+// regardless of the event source (Kubernetes, Redis, IoT, etc.)
 func (m *Manager) eventKey(event interfaces.Event) string {
-	return fmt.Sprintf("%s:%s:%s", event.Type, event.Namespace, event.ResourceName)
+	// Prefer UID if available for explicit unique identification
+	if event.UID != "" {
+		return fmt.Sprintf("%s:%s", event.Type, event.UID)
+	}
+
+	// Generate content-based hash for semantic deduplication
+	hash := m.hashEventContent(event)
+	return fmt.Sprintf("%s:%s", event.Type, hash)
+}
+
+// hashEventContent creates a stable hash of event content for deduplication
+func (m *Manager) hashEventContent(event interfaces.Event) string {
+	// Create a stable representation of the event
+	// We hash: Type + ResourceName + Namespace + Reason + Message + Metadata
+	h := sha256.New()
+
+	// Add string fields
+	h.Write([]byte(event.Type))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.ResourceName))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.Namespace))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.Reason))
+	h.Write([]byte("|"))
+	h.Write([]byte(event.Message))
+	h.Write([]byte("|"))
+
+	// Add metadata in a stable way (sorted keys for deterministic hash)
+	if event.Metadata != nil {
+		// Sort keys for stable hash
+		keys := make([]string, 0, len(event.Metadata))
+		for k := range event.Metadata {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		// Add each key-value pair to hash
+		for _, k := range keys {
+			h.Write([]byte(k))
+			h.Write([]byte("="))
+			// Convert value to JSON for stable representation
+			if jsonBytes, err := json.Marshal(event.Metadata[k]); err == nil {
+				h.Write(jsonBytes)
+			}
+			h.Write([]byte(";"))
+		}
+	}
+
+	// Return first 16 characters of hex hash (sufficient for uniqueness)
+	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
 // ShouldProcessEvent determines if an event should be processed based on deduplication logic
 func (m *Manager) ShouldProcessEvent(hookRef types.NamespacedName, event interfaces.Event) bool {
-	logger := log.Log.WithName("dedup").WithValues("hook", hookRef.String(), "eventType", event.Type, "resource", event.ResourceName)
+	logValues := []interface{}{"hook", hookRef.String(), "eventType", event.Type}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resource", event.ResourceName)
+	}
+	if event.UID != "" {
+		logValues = append(logValues, "uid", event.UID)
+	}
+	logger := log.Log.WithName("dedup").WithValues(logValues...)
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
@@ -85,7 +152,14 @@ func (m *Manager) ShouldProcessEvent(hookRef types.NamespacedName, event interfa
 
 // RecordEvent records an event in the deduplication storage
 func (m *Manager) RecordEvent(hookRef types.NamespacedName, event interfaces.Event) error {
-	logger := log.Log.WithName("dedup").WithValues("hook", hookRef.String(), "eventType", event.Type, "resource", event.ResourceName)
+	logValues := []interface{}{"hook", hookRef.String(), "eventType", event.Type}
+	if event.ResourceName != "" {
+		logValues = append(logValues, "resource", event.ResourceName)
+	}
+	if event.UID != "" {
+		logValues = append(logValues, "uid", event.UID)
+	}
+	logger := log.Log.WithName("dedup").WithValues(logValues...)
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

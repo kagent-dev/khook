@@ -125,3 +125,31 @@ func TestHookDeepCopy(t *testing.T) {
 		t.Errorf("DeepCopyObject() name mismatch: got %v, want %v", hookObj.Name, original.Name)
 	}
 }
+
+func TestHookValidation_GroupedSource(t *testing.T) {
+	ok := &Hook{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+		Spec: HookSpec{
+			EventConfigurations: []EventConfiguration{
+				{
+					Source: &EventSourceEvents{
+						Name: "ext-src",
+						Events: []SourceEvent{
+							{EventType: "pod-restart", AgentRef: ObjectReference{Name: "agent"}, Prompt: "p1"},
+							{EventType: "probe-failed", AgentRef: ObjectReference{Name: "agent"}, Prompt: "p2"},
+						},
+					},
+				},
+			},
+		},
+	}
+	if _, err := ok.ValidateCreate(context.Background(), ok); err != nil {
+		t.Fatalf("expected grouped source to validate, got %v", err)
+	}
+
+	dup := ok.DeepCopy()
+	dup.Spec.EventConfigurations = append(dup.Spec.EventConfigurations, EventConfiguration{EventType: "pod-restart", AgentRef: ObjectReference{Name: "a"}, Prompt: "p"})
+	if _, err := dup.ValidateCreate(context.Background(), dup); err == nil {
+		t.Fatalf("expected duplicate eventType across forms to fail validation")
+	}
+}

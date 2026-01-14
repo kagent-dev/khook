@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: redis
+spec:
+  selector:
+    app: redis
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+---
+apiVersion: kagent.dev/v1alpha2
+kind: ExternalEventSource
+metadata:
+  name: redis-events
+  namespace: default
+spec:
+  endpoint:
+    address: redis://redis.redis.svc:6379
+    tls:
+      enabled: false
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Hook
+metadata:
+  name: redis-external-hook
+  namespace: default
+spec:
+  eventConfigurations:
+  - source:
+      name: redis-events
+      events:
+      - eventType: pod-restart
+        agentRef:
+          name: kagent/pod-restart-agent
+        prompt: "Redis external: pod restart {{.ResourceName}}"
+
+
+
+
+
+
+
+
+
+

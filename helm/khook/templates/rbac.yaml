@@ -33,6 +33,33 @@ rules:
   - get
   - patch
   - update
+# ExternalEventSource CRD permissions
+- apiGroups:
+  - kagent.dev
+  resources:
+  - externaleventsources
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kagent.dev
+  resources:
+  - externaleventsources/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - kagent.dev
+  resources:
+  - externaleventsources/status
+  verbs:
+  - get
+  - patch
+  - update
 # Event watching permissions
 - apiGroups:
   - ""

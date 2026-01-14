@@ -43,7 +43,9 @@ spec:
                 description: EventConfigurations defines the list of event configurations
                   to monitor
                 items:
-                  description: EventConfiguration defines a single event type configuration
+                  description: |-
+                    EventConfiguration defines either a single built-in event configuration
+                    or a grouped source configuration with multiple events.
                   properties:
                     agentRef:
                       description: AgentRef specifies the Kagent agent to call when
@@ -64,8 +66,9 @@ spec:
                       - name
                       type: object
                     eventType:
-                      description: EventType specifies the type of Kubernetes event
-                        to monitor
+                      description: |-
+                        Single built-in event form (Kubernetes events watcher)
+                        EventType specifies the type of Kubernetes event to monitor
                       enum:
                       - pod-restart
                       - pod-pending
@@ -78,10 +81,64 @@ spec:
                         the agent
                       minLength: 1
                       type: string
-                  required:
-                  - agentRef
-                  - eventType
-                  - prompt
+                    source:
+                      description: Grouped source form (external or named source with
+                        multiple events)
+                      properties:
+                        events:
+                          description: Events is the list of event configurations
+                            for this source
+                          items:
+                            description: SourceEvent describes a single event mapping
+                              for a grouped source
+                            properties:
+                              agentRef:
+                                description: AgentRef specifies the Kagent agent to
+                                  call when this event occurs
+                                properties:
+                                  name:
+                                    description: |-
+                                      Name of the referent.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    minLength: 1
+                                    type: string
+                                  namespace:
+                                    description: |-
+                                      Namespace of the referent.
+                                      If unspecified, the namespace of the Hook will be used.
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              eventType:
+                                description: EventType specifies the event type to
+                                  match
+                                minLength: 1
+                                type: string
+                              prompt:
+                                description: Prompt specifies the prompt template
+                                  to send to the agent
+                                minLength: 1
+                                type: string
+                            required:
+                            - agentRef
+                            - eventType
+                            - prompt
+                            type: object
+                          minItems: 1
+                          type: array
+                        name:
+                          description: Name of the ExternalEventSource
+                          minLength: 1
+                          type: string
+                        namespace:
+                          description: Namespace of the ExternalEventSource. Defaults
+                            to the Hook namespace if omitted.
+                          type: string
+                      required:
+                      - events
+                      - name
+                      type: object
                   type: object
                 minItems: 1
                 type: array

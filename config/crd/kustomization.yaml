@@ -3,3 +3,4 @@ kind: Kustomization
 
 resources:
 - bases/kagent.dev_hooks.yaml
+- bases/kagent.dev_externaleventsources.yaml

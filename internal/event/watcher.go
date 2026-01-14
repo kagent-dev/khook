@@ -18,7 +18,7 @@ import (
 	"github.com/kagent-dev/khook/internal/interfaces"
 )
 
-// Watcher implements the EventWatcher interface
+// Watcher implements both EventWatcher and EventSource interfaces
 type Watcher struct {
 	client    kubernetes.Interface
 	namespace string
@@ -27,7 +27,7 @@ type Watcher struct {
 	eventCh   chan interfaces.Event
 }
 
-// NewWatcher creates a new EventWatcher instance
+// NewWatcher creates a new EventWatcher instance (legacy path)
 func NewWatcher(client kubernetes.Interface, namespace string) interfaces.EventWatcher {
 	// Validate inputs
 	if client == nil {
@@ -60,6 +60,11 @@ func NewWatcher(client kubernetes.Interface, namespace string) interfaces.EventW
 		stopCh:    make(chan struct{}),
 		eventCh:   make(chan interfaces.Event, 100),
 	}
+}
+
+// NewKubernetesSource creates a built-in Kubernetes EventSource
+func NewKubernetesSource(client kubernetes.Interface, namespace string) interfaces.EventSource {
+	return NewWatcher(client, namespace).(*Watcher)
 }
 
 // Start begins the event watching process
@@ -174,6 +179,14 @@ func (w *Watcher) Stop() error {
 	return nil
 }
 
+// Events returns the internal event channel (EventSource contract)
+func (w *Watcher) Events() <-chan interfaces.Event {
+	return w.eventCh
+}
+
+// Name returns a stable source identifier (EventSource contract)
+func (w *Watcher) Name() string { return "kubernetes-events" }
+
 // WatchEvents returns a channel of all events (filtering is done by the processor)
 func (w *Watcher) WatchEvents(ctx context.Context) (<-chan interfaces.Event, error) {
 	if err := w.Start(ctx); err != nil {
@@ -229,7 +242,7 @@ func (w *Watcher) mapKubernetesEvent(k8sEvent *eventsv1.Event) *interfaces.Event
 		Reason:       k8sEvent.Reason,
 		Message:      k8sEvent.Note,
 		UID:          string(k8sEvent.UID),
-		Metadata: map[string]string{
+		Metadata: map[string]interface{}{
 			"kind":                k8sEvent.Regarding.Kind,
 			"apiVersion":          k8sEvent.Regarding.APIVersion,
 			"count":               count,
@@ -332,7 +345,7 @@ func (w *Watcher) mapNodeEventType(k8sEvent *eventsv1.Event) string {
 	// Node not ready events
 	case reason == "nodenotready":
 		return "node-not-ready"
-		
+
 	default:
 		// Log unknown node events for future enhancement
 		w.logger.V(1).Info("Unknown node event", "reason", reason, "type", eventType, "message", message)

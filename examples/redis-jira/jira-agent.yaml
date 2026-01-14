@@ -1,0 +1,31 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  labels:
+    app.kubernetes.io/name: jira-agent
+  name: jira-agent
+  namespace: kagent
+spec:
+  declarative:
+    modelConfig: default-model-config
+    systemMessage: |
+      # Jira AI Agent System Prompt
+
+      You are JiraMaster, an advanced AI agent specialized in Jira ticketing and operations. You have deep expertise in Jira workflows. Your purpose is to help users open Jira tickets when create_issue ebents happen. And resolve Kubernetes-related issues when resolve-issue events happen.
+      # AUTONOMOUS MODE
+      You are being envoked by a non-human. Don't ask questions, just apply the best solution you can think of.
+ 
+    tools:
+    - mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: atlassian
+        toolNames:
+        - jira_create_issue
+        - jira_batch_create_issues
+        - jira_delete_issue
+        - jira_get_issue
+        - jira_get_all_projects
+      type: McpServer
+  description: A Jira admin AU agent.
+  type: Declarative

@@ -141,7 +141,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 			Reason:       "BackOff",
 			Message:      "Container failed to start",
 			UID:          "test-uid-1",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"kind": "Pod",
 			},
 		}
@@ -183,7 +183,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 	t.Run("ProcessDuplicateEvent", func(t *testing.T) {
 		mockKagentClient.ClearCalls()
 
-		// Same event as before - should be deduplicated
+		// Same event as before - should be deduplicated (same UID)
 		event := interfaces.Event{
 			Type:         "pod-restart",
 			ResourceName: "test-pod-1",
@@ -191,7 +191,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 			Timestamp:    time.Now(),
 			Reason:       "BackOff",
 			Message:      "Container failed to start again",
-			UID:          "test-uid-1-duplicate",
+			UID:          "test-uid-1", // Same UID as original event for deduplication
 		}
 
 		err := processor.ProcessEvent(ctx, event, hooks)
@@ -214,7 +214,7 @@ func TestEventProcessingIntegration(t *testing.T) {
 			Reason:       "OOMKilling",
 			Message:      "Memory limit exceeded",
 			UID:          "test-uid-2",
-			Metadata: map[string]string{
+			Metadata: map[string]interface{}{
 				"kind": "Pod",
 			},
 		}
@@ -414,7 +414,31 @@ func TestPromptTemplateExpansion(t *testing.T) {
 			event: interfaces.Event{
 				Type: "pod-restart",
 			},
-			expected: "Known: pod-restart, Unknown: {{.UnknownField}}",
+			expected: "Known: pod-restart, Unknown: <no value>",
+		},
+		{
+			name:     "Template with metadata access",
+			template: "Issue: {{.Metadata.issue}}, Project: {{.Metadata.project}}",
+			event: interfaces.Event{
+				Type: "resolve-issue",
+				Metadata: map[string]interface{}{
+					"issue":   "ECS-11",
+					"project": "KhookProject",
+				},
+			},
+			expected: "Issue: ECS-11, Project: KhookProject",
+		},
+		{
+			name:     "Template with nested metadata",
+			template: "Order {{.Metadata.orderId}} total: ${{.Metadata.amount}}",
+			event: interfaces.Event{
+				Type: "order-placed",
+				Metadata: map[string]interface{}{
+					"orderId": "ORD-123",
+					"amount":  99.99,
+				},
+			},
+			expected: "Order ORD-123 total: $99.99",
 		},
 	}
 

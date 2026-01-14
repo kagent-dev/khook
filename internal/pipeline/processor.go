@@ -49,6 +49,14 @@ func (p *Processor) ProcessEvent(ctx context.Context, event interfaces.Event, ho
 		"namespace", event.Namespace,
 		"hookCount", len(hooks))
 
+	// Validate event has required fields
+	if event.Type == "" {
+		p.logger.V(1).Info("Ignoring event with empty type",
+			"metadata", event.Metadata,
+			"message", event.Message)
+		return nil
+	}
+
 	// Find matching hooks and configurations for this event
 	matches := p.findEventMatches(event, hooks)
 	if len(matches) == 0 {
@@ -94,12 +102,31 @@ func (p *Processor) findEventMatches(event interfaces.Event, hooks []*v1alpha2.H
 
 	for _, hook := range hooks {
 		for _, config := range hook.Spec.EventConfigurations {
+			// Single-event form
 			if config.EventType == event.Type {
 				matches = append(matches, EventMatch{
 					Hook:          hook,
 					Configuration: config,
 					Event:         event,
 				})
+				continue
+			}
+			// Grouped source form
+			if config.Source != nil {
+				for _, se := range config.Source.Events {
+					if se.EventType == event.Type {
+						cfg := v1alpha2.EventConfiguration{
+							EventType: se.EventType,
+							AgentRef:  se.AgentRef,
+							Prompt:    se.Prompt,
+						}
+						matches = append(matches, EventMatch{
+							Hook:          hook,
+							Configuration: cfg,
+							Event:         event,
+						})
+					}
+				}
 			}
 		}
 	}
@@ -112,6 +139,23 @@ func (p *Processor) processEventMatch(ctx context.Context, match EventMatch) err
 	hookRef := types.NamespacedName{
 		Namespace: match.Hook.Namespace,
 		Name:      match.Hook.Name,
+	}
+
+	// Validate agent reference
+	if match.Configuration.AgentRef.Name == "" {
+		p.logger.Error(fmt.Errorf("invalid configuration"), "Agent reference name is empty",
+			"hook", hookRef,
+			"eventType", match.Event.Type)
+		return fmt.Errorf("agent reference name is empty for hook %s", hookRef)
+	}
+
+	// Validate prompt is not empty
+	if match.Configuration.Prompt == "" {
+		p.logger.Error(fmt.Errorf("invalid configuration"), "Prompt is empty",
+			"hook", hookRef,
+			"eventType", match.Event.Type,
+			"agentRef", match.Configuration.AgentRef.Name)
+		return fmt.Errorf("prompt is empty for hook %s, event %s", hookRef, match.Event.Type)
 	}
 
 	// Check deduplication - should we process this event?
@@ -185,21 +229,39 @@ func (p *Processor) createAgentRequest(match EventMatch, agentRef types.Namespac
 	// Expand prompt template with event context
 	prompt := p.expandPromptTemplate(match.Configuration.Prompt, match.Event)
 
+	p.logger.V(1).Info("Expanded prompt template",
+		"eventType", match.Event.Type,
+		"originalPrompt", match.Configuration.Prompt,
+		"expandedPrompt", prompt,
+		"metadata", match.Event.Metadata)
+
+	// Build context with all event data and metadata
+	context := map[string]interface{}{
+		"namespace":     match.Event.Namespace,
+		"reason":        match.Event.Reason,
+		"message":       match.Event.Message,
+		"uid":           match.Event.UID,
+		"hookName":      match.Hook.Name,
+		"hookNamespace": match.Hook.Namespace,
+	}
+
+	// Include all metadata fields at the top level for easy agent access
+	if match.Event.Metadata != nil {
+		for k, v := range match.Event.Metadata {
+			context[k] = v
+		}
+	}
+
+	// Also include the metadata map itself for structured access
+	context["metadata"] = match.Event.Metadata
+
 	return interfaces.AgentRequest{
 		AgentRef:     agentRef,
 		Prompt:       prompt,
 		EventName:    match.Event.Type,
 		EventTime:    match.Event.Timestamp,
 		ResourceName: match.Event.ResourceName,
-		Context: map[string]interface{}{
-			"namespace":     match.Event.Namespace,
-			"reason":        match.Event.Reason,
-			"message":       match.Event.Message,
-			"uid":           match.Event.UID,
-			"metadata":      match.Event.Metadata,
-			"hookName":      match.Hook.Name,
-			"hookNamespace": match.Hook.Namespace,
-		},
+		Context:      context,
 	}
 }
 
@@ -214,19 +276,11 @@ func (p *Processor) expandPromptTemplate(templateStr string, event interfaces.Ev
 	}
 
 	// First, try to expand known placeholders using the original manual method
-	// This ensures backward compatibility for unknown placeholders
+	// This ensures simple placeholders are handled quickly
 	result := p.expandKnownPlaceholders(templateStr, event)
 
-	// Check if there are still unexpanded template placeholders
-	// If so, skip text/template processing to maintain backward compatibility
-	if strings.Contains(result, "{{") && strings.Contains(result, "}}") {
-		p.logger.V(2).Info("Template contains unknown placeholders, skipping advanced processing",
-			"template", result)
-		return result
-	}
-
-	// Then try to use text/template for more advanced templating
-	// This allows for complex template expressions while maintaining backward compatibility
+	// Always try text/template expansion for advanced features like metadata access
+	// The text/template engine will handle both simple and complex templates
 	result = p.expandWithTextTemplate(result, event)
 
 	return result
@@ -297,7 +351,9 @@ func (p *Processor) expandKnownPlaceholders(template string, event interfaces.Ev
 // expandWithTextTemplate attempts to use text/template for advanced features
 func (p *Processor) expandWithTextTemplate(templateStr string, event interfaces.Event) string {
 	// Create template data for advanced templating
+	// Make all event fields available at the top level for easy access
 	templateData := map[string]interface{}{
+		// Legacy/convenience fields (backward compatible)
 		"EventType":    event.Type,
 		"ResourceName": event.ResourceName,
 		"Namespace":    event.Namespace,
@@ -306,7 +362,14 @@ func (p *Processor) expandWithTextTemplate(templateStr string, event interfaces.
 		"Timestamp":    event.Timestamp.Format(time.RFC3339),
 		"EventTime":    event.Timestamp.Format(time.RFC3339),
 		"EventMessage": event.Message,
-		"Event":        event, // Full event access for advanced templating
+
+		// Direct access to event fields
+		"Type":     event.Type,
+		"UID":      event.UID,
+		"Metadata": event.Metadata, // Full metadata map for custom fields
+
+		// Full event access for advanced templating
+		"Event": event,
 	}
 
 	// Try to parse and execute the template
