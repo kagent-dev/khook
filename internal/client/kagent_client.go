@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	"github.com/kagent-dev/kagent/go/pkg/client"
 	"github.com/kagent-dev/kagent/go/pkg/client/api"
 	"github.com/kagent-dev/khook/internal/interfaces"
@@ -189,6 +190,7 @@ func (c *Client) CallAgent(ctx context.Context, request interfaces.AgentRequest)
 	sessionID := sessionResp.Data.ID
 	res, err := a2a.SendMessage(sendCtx, protocol.SendMessageParams{
 		Message: protocol.Message{
+			MessageID: uuid.New().String(),
 			Role:      protocol.MessageRoleUser,
 			ContextID: &sessionID,
 			Parts:     []protocol.Part{protocol.NewTextPart(text)},
